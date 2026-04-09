@@ -224,6 +224,7 @@ type BossContribution = {
   correctCount: number;
   damage: number;
   submittedAt: string;
+  hiddenAttempted?: boolean;
   chestCount?: number;
   rewards?: Item[];
   killerRewards?: Item[];
@@ -3986,7 +3987,7 @@ function launchTerritoryRaid() {
               </div>
 
               <div className="student-gear-panel" style={styles.studentGearPanel}>
-                <div style={{ fontWeight: 900, marginBottom: 16, fontSize: 30, whiteSpace: "nowrap", lineHeight: 1.1 }}>Vật phẩm đang mặc</div>
+                <div style={{ fontWeight: 900, marginBottom: 10, fontSize: 24 }}>Vật phẩm đang mặc</div>
                 <div style={styles.studentGearGrid}>
                   {SLOTS.map((slot) => {
                     const item = currentStudent.equipped[slot];
@@ -4408,7 +4409,7 @@ function launchTerritoryRaid() {
                         )}
                       </div>
                       <div style={styles.itemsPanelInline}>
-                        <div style={{ fontWeight: 900, marginBottom: 16, fontSize: 30, whiteSpace: "nowrap", lineHeight: 1.1 }}>Vật phẩm đang mặc</div>
+                        <div style={{ fontWeight: 900, marginBottom: 10, fontSize: 24 }}>Vật phẩm đang mặc</div>
                         <div style={styles.itemGridTwoRows}>
                           {SLOTS.map((slot) => {
                             const item = s.equipped[slot];
@@ -5647,13 +5648,13 @@ const styles: Record<string, React.CSSProperties> = {
   studentBeastFrame: { width: "100%", minHeight: 420, borderRadius: 34, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", margin: "8px auto 0", position: "relative" },
   studentBeastImage: { width: "98%", height: "98%", objectFit: "contain", display: "block" },
   studentGearPanel: { minWidth: 0, display: "flex", flexDirection: "column", background: "#fff", border: "1px solid #e2e8f0", borderRadius: 24, padding: 18, boxShadow: "0 10px 24px rgba(15,23,42,0.06)" },
-  studentGearGrid: { display: "grid", gridTemplateColumns: "repeat(2, minmax(300px, 1fr))", gap: 18, width: "100%" },
-  studentGearCard: { minHeight: 270, borderRadius: 28, padding: 16, border: "1.5px solid #334155", background: "linear-gradient(135deg, rgba(2,6,23,0.98), rgba(15,23,42,0.98))", display: "grid", gridTemplateColumns: "48% 52%", alignItems: "stretch", gap: 16, boxShadow: "0 12px 28px rgba(15,23,42,0.28)" },
-  studentGearVisual: { borderRadius: 22, padding: 18, background: "radial-gradient(circle at center, rgba(255,255,255,0.08), rgba(15,23,42,0.86))", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "space-between", minHeight: "100%" },
+  studentGearGrid: { display: "grid", gridTemplateColumns: "repeat(2, minmax(220px, 1fr))", gap: 16, width: "100%" },
+  studentGearCard: { minHeight: 220, borderRadius: 28, padding: 14, border: "1.5px solid #334155", background: "linear-gradient(135deg, rgba(2,6,23,0.98), rgba(15,23,42,0.98))", display: "grid", gridTemplateColumns: "46% 54%", alignItems: "stretch", gap: 14, boxShadow: "0 12px 28px rgba(15,23,42,0.28)" },
+  studentGearVisual: { borderRadius: 22, padding: 12, background: "radial-gradient(circle at center, rgba(255,255,255,0.08), rgba(15,23,42,0.86))", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "space-between", minHeight: "100%" },
   studentGearIconWrap: { flex: 1, width: "100%", display: "flex", alignItems: "center", justifyContent: "center" },
   studentGearIcon: { width: "92%", height: "92%", objectFit: "contain", filter: "drop-shadow(0 12px 20px rgba(0,0,0,0.35))" },
-  studentGearInfo: { display: "flex", flexDirection: "column", justifyContent: "center", gap: 12, minWidth: 0, overflow: "hidden" },
-  studentGearStats: { display: "grid", gap: 8, width: "100%", fontSize: 15 },
+  studentGearInfo: { display: "flex", flexDirection: "column", justifyContent: "center", gap: 10, minWidth: 0, overflow: "hidden" },
+  studentGearStats: { display: "grid", gap: 6, width: "100%" },
   bossShowcaseRow: { display: "grid", gridTemplateColumns: "minmax(320px, 420px) minmax(0, 1fr)", gap: 20, alignItems: "start" },
   bossPreviewCard: { background: "#fff7ed", border: "1px solid #fed7aa", borderRadius: 24, padding: 18, display: "grid", gap: 12, boxShadow: "0 10px 24px rgba(15,23,42,0.08)" },
   bossPreviewImageWrap: { display: "flex", alignItems: "center", justifyContent: "center", minHeight: 360, borderRadius: 24, background: "radial-gradient(circle at center, rgba(255,255,255,0.95), rgba(255,237,213,0.92))", border: "1px solid rgba(251,146,60,0.18)" },
