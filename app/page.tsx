@@ -288,8 +288,8 @@ const BOSS_KILLER_RARITY: Rarity = "Vàng";
 
 
 function getEggStage(guildLevel: number) {
-  if (guildLevel >= 10) return "hatch";
-  if (guildLevel >= 8) return "glow";
+  if (guildLevel >= 6) return "hatch";
+  if (guildLevel >= 4) return "glow";
   return "idle";
 }
 
@@ -1558,6 +1558,8 @@ export default function Page() {
   const [guildExpValue, setGuildExpValue] = useState("50");
   const [oldPass, setOldPass] = useState("");
   const [newPass, setNewPass] = useState("");
+  const [resetPasswordInput, setResetPasswordInput] = useState("");
+  const [showResetBox, setShowResetBox] = useState(false);
   const [qQuestion, setQQuestion] = useState("");
   const [qA, setQA] = useState("");
   const [qB, setQB] = useState("");
@@ -2153,20 +2155,20 @@ export default function Page() {
     let newStudents = nextStudents.map((s) => autoProcessInventory({ ...s }));
 
     newGuilds.forEach((g) => {
-      if (g.level >= 8 && !g.reachedLevel8At) {
+      if (g.level >= 4 && !g.reachedLevel8At) {
         g.reachedLevel8At = new Date().toISOString();
-        addLog("guild_level_8", `${g.name} đạt cấp 8 và bắt đầu ấp trứng.`);
+        addLog("guild_level_4", `${g.name} đạt cấp 4 và bắt đầu ấp trứng.`);
       }
-      if (g.level >= 10 && !g.reachedLevel12At) {
+      if (g.level >= 6 && !g.reachedLevel12At) {
         g.reachedLevel12At = new Date().toISOString();
-        addLog("guild_level_10", `${g.name} đạt cấp 10, trứng đã nở và toàn bộ thành viên nhận thú chiến.`);
+        addLog("guild_level_6", `${g.name} đạt cấp 6, trứng đã nở và toàn bộ thành viên nhận thú chiến.`);
       }
     });
 
     newStudents = newStudents.map((s) => {
       const g = newGuilds.find((x) => x.id === s.guildId);
       if (!g) return s;
-      if (g.level >= 10 && (!s.beast || !s.hasBeast)) {
+      if (g.level >= 6 && (!s.beast || !s.hasBeast)) {
         const beast = createBeast(s, g, newGuilds);
         return { ...s, hasBeast: true, beast };
       }
@@ -2278,6 +2280,18 @@ export default function Page() {
     setOldPass("");
     setNewPass("");
     alert("Đổi mật khẩu thành công");
+  }
+
+  function handleResetGame() {
+    if (resetPasswordInput !== adminPassword) {
+      alert("Sai mật khẩu giáo viên.");
+      return;
+    }
+    localStorage.removeItem(STORAGE_KEY);
+    LEGACY_STORAGE_KEYS.forEach((key) => localStorage.removeItem(key));
+    localStorage.removeItem(PENDING_SUBMIT_KEY);
+    alert("Đã reset game.");
+    window.location.reload();
   }
 
   function changeStudentPassword() {
@@ -3760,7 +3774,7 @@ function launchTerritoryRaid() {
             <div style={styles.serverBannerBadge}>THÔNG BÁO TOÀN SERVER</div>
             <div style={styles.serverBannerTitle}>🎉 Trứng thú đã nở!</div>
             <div style={styles.serverBannerText}>
-              {recentHatchGuilds.map((g) => `${g.name} mở khóa thú chiến ở cấp 10`).join(" · ")}
+              {recentHatchGuilds.map((g) => `${g.name} mở khóa thú chiến ở cấp 6`).join(" · ")}
             </div>
           </div>
         )}
@@ -3978,7 +3992,7 @@ function launchTerritoryRaid() {
                     <div style={{ ...styles.studentBeastFrame, ...styles.eggFrame, ...(guild.level >= 10 ? styles.eggGlowAnimated : {}), boxShadow: guild.level >= 10 ? "0 0 20px rgba(250,204,21,0.45)" : "0 0 10px rgba(148,163,184,0.25)" }}>
                       <img src={getEggImage(guild.level)} alt="egg" onError={(e) => { e.currentTarget.style.display = "none"; const next = e.currentTarget.nextElementSibling as HTMLElement | null; if (next) next.style.display = "flex"; }} style={{ ...styles.studentBeastImage, ...styles.eggAnimated }} /><div style={{ display: "none", alignItems: "center", justifyContent: "center", width: "100%", height: "100%", fontSize: 88 }}>🥚</div>
                     </div>
-                    <div style={{ marginTop: 10, textAlign: "center", fontSize: 20, fontWeight: 800 }}>Trứng thú đang chờ nở</div><div style={{ marginTop: 6, textAlign: "center" }}>Quân đoàn cần đạt cấp 10 để thú xuất hiện và kích hoạt đầy đủ trang phục.</div>
+                    <div style={{ marginTop: 10, textAlign: "center", fontSize: 20, fontWeight: 800 }}>Trứng thú đang chờ nở</div><div style={{ marginTop: 6, textAlign: "center" }}>Quân đoàn cần đạt cấp 6 để thú xuất hiện và kích hoạt đầy đủ trang phục.</div>
                     <div style={{ fontSize: 13, color: "#64748b", marginTop: 6, textAlign: "center" }}>
                       {guild.level >= 10 ? "Trứng đang phát sáng, sắp nở..." : guild.level >= 8 ? "Trứng đã bắt đầu ấp." : "Chưa đạt mốc ấp trứng."}
                     </div>
@@ -4561,8 +4575,8 @@ function launchTerritoryRaid() {
                       <div style={{ fontSize: 24, fontWeight: 800 }}>{guild.name}</div>
                       <div>LV {guild.level} · Buff +{guild.buffPercent}% · EXP {guild.exp}</div>
                       <div>Tiến độ cấp sau: {info.current}/{info.next}</div>
-                      <div>Mốc lv8: {formatDateTime(guild.reachedLevel8At)} · Mốc nở lv10: {formatDateTime(guild.reachedLevel12At)}</div>
-                      <div>Trạng thái trứng: <b>{guild.level >= 10 ? "Đã nở" : guild.level >= 8 ? "Đang ấp / phát sáng" : "Chưa ấp"}</b></div>
+                      <div>Mốc lv4: {formatDateTime(guild.reachedLevel8At)} · Mốc nở lv6: {formatDateTime(guild.reachedLevel12At)}</div>
+                      <div>Trạng thái trứng: <b>{guild.level >= 6 ? "Đã nở" : guild.level >= 4 ? "Đang ấp / phát sáng" : "Chưa ấp"}</b></div>
                       <div>Đoàn trưởng: <b>{members.find((s) => s.id === guild.leaderStudentId)?.name || "-"}</b></div>
                       <div>Đoàn phó: <b>{guild.viceLeaderStudentIds.map((id) => members.find((s) => s.id === id)?.name).filter(Boolean).join(", ") || "-"}</b></div>
                       <div>Số thành viên: <b>{members.length}</b></div>
