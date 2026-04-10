@@ -831,6 +831,25 @@ function getViceCount(n: number) {
   return n > 1 ? 1 : 0;
 }
 
+function getRoleBuffPercent(studentId: number, guild?: Guild | null) {
+  if (!guild) return 0;
+  if (guild.leaderStudentId === studentId) return 5;
+  if (guild.viceLeaderStudentIds.includes(studentId)) return 2;
+  return 0;
+}
+
+function getRoleLabel(studentId: number, guild?: Guild | null) {
+  if (!guild) return "Thành viên";
+  if (guild.leaderStudentId === studentId) return "Đoàn trưởng";
+  if (guild.viceLeaderStudentIds.includes(studentId)) return "Đoàn phó";
+  return "Thành viên";
+}
+
+function getTotalBuffPercent(studentId: number, guild?: Guild | null) {
+  if (!guild) return 0;
+  return guild.buffPercent + getRoleBuffPercent(studentId, guild);
+}
+
 function beastStats(student: Student) {
   if (!student.beast) return null;
   const b = student.beast;
@@ -852,8 +871,8 @@ function beastPower(student: Student, guild: Guild) {
   const st = beastStats(student);
   if (!st || !student.beast) return 0;
   const raw = st.atk * 2 + st.def * 1.8 + st.hp * 0.5 + st.spd * 2.2 + student.beast.quality * 3 + student.beast.level * 10;
-  const roleBuffPercent = guild.leaderStudentId === student.id ? 5 : guild.viceLeaderStudentIds.includes(student.id) ? 2 : 0;
-  const totalPercentBuff = guild.buffPercent + roleBuffPercent;
+  const roleBuffPercent = getRoleBuffPercent(student.id, guild);
+  const totalPercentBuff = getTotalBuffPercent(student.id, guild);
   const totalStatBuff = 1 + totalPercentBuff / 100;
   const weaponDamageBuff = 1 + (st.damagePercent || 0) / 100;
   return Math.round(raw * totalStatBuff * weaponDamageBuff);
@@ -3788,7 +3807,7 @@ function launchTerritoryRaid() {
             <div>Điểm uy danh: <b>{currentStudent.prestigePoints || 0}</b></div>
             <div>Lực chiến: <b>{beastPower(currentStudent, guild)}</b></div>
             <div style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>Uy danh từ đơn đấu chỉ nhận khi lực chiến thấp hơn mà vẫn thắng. Uy danh tự động cường hóa đều theo thứ tự: Vũ khí → Giáp → Mũ → Giày.</div>
-            <div style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>Buff sức mạnh: Quân đoàn +{guild.buffPercent}%{guild.leaderStudentId === currentStudent.id ? " · Đoàn trưởng +5%" : guild.viceLeaderStudentIds.includes(currentStudent.id) ? " · Đoàn phó +2%" : ""}</div>
+            <div style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>Buff sức mạnh: Quân đoàn +{guild.buffPercent}% · Chức vụ +{getRoleBuffPercent(currentStudent.id, guild)}% · Tổng buff +{getTotalBuffPercent(currentStudent.id, guild)}%</div>
             <div style={{ marginTop: 12, display: "grid", gap: 8 }}>
               <div style={{ fontWeight: 700 }}>Đổi mật khẩu nhanh</div>
               <input style={styles.input} type="text" value={studentNewPassword} onChange={(e) => setStudentNewPassword(e.target.value)} placeholder="Nhập mật khẩu mới" />
@@ -4298,7 +4317,7 @@ function launchTerritoryRaid() {
             </div>
             <div style={styles.card}>
               <h3>Danh sách thành viên trong quân đoàn đã chọn</h3>
-              <div style={{ fontSize: 13, color: "#64748b", marginBottom: 10 }}>Tab này chỉ quản lý thông tin thành viên. Phần cộng/trừ điểm đã chuyển sang tab "Điểm học sinh".</div>
+              <div style={{ fontSize: 13, color: "#64748b", marginBottom: 10 }}>Tab này chỉ quản lý thông tin thành viên. Mật khẩu đã chuyển sang khu quản lý riêng. Phần cộng/trừ điểm đã chuyển sang tab "Điểm học sinh".</div>
               <div style={{ overflowX: "auto" }}>
                 <table style={styles.table}>
                   <thead>
@@ -4306,26 +4325,76 @@ function launchTerritoryRaid() {
                       <th style={styles.th}>Avatar</th>
                       <th style={styles.th}>Họ tên</th>
                       <th style={styles.th}>Tài khoản</th>
-                      <th style={styles.th}>Mật khẩu</th>
                       <th style={styles.th}>Lớp</th>
                       <th style={styles.th}>Quân đoàn</th>
+                      <th style={styles.th}>Chức vụ</th>
+                      <th style={styles.th}>Buff chức vụ</th>
+                      <th style={styles.th}>Tổng buff</th>
                       <th style={styles.th}>Tác vụ</th>
                     </tr>
                   </thead>
                   <tbody>
+                    {selectedGuildStudents.map((s) => {
+                      const guild = guildById.get(s.guildId);
+                      return (
+                        <tr key={`row-${s.id}`}>
+                          <td style={styles.td}>{s.avatarUrl ? <img src={s.avatarUrl} alt={s.name} style={styles.avatarSm} /> : <div style={styles.avatarFallbackSm}>{s.name.slice(0, 1)}</div>}</td>
+                          <td style={styles.td}>{s.name}</td>
+                          <td style={styles.td}>{s.username}</td>
+                          <td style={styles.td}>{s.className}</td>
+                          <td style={styles.td}>{guild?.name || "-"}</td>
+                          <td style={styles.td}>{getRoleLabel(s.id, guild)}</td>
+                          <td style={styles.td}>+{getRoleBuffPercent(s.id, guild)}%</td>
+                          <td style={styles.td}>+{getTotalBuffPercent(s.id, guild)}%</td>
+                          <td style={styles.td}>
+                            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                              <button style={styles.secondaryBtn} onClick={() => editMember(s)}>Sửa thông tin</button>
+                              <button style={styles.dangerBtn} onClick={() => removeMember(s.id)}>Xóa</button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div style={styles.card}>
+              <h3>Quản lý mật khẩu học sinh</h3>
+              <div style={{ fontSize: 13, color: "#64748b", marginBottom: 10 }}>Mật khẩu được quản lý riêng, không hiện trong bảng thành viên quân đoàn.</div>
+              <div style={{ overflowX: "auto" }}>
+                <table style={styles.table}>
+                  <thead>
+                    <tr>
+                      <th style={styles.th}>Họ tên</th>
+                      <th style={styles.th}>Tài khoản</th>
+                      <th style={styles.th}>Lớp</th>
+                      <th style={styles.th}>Quân đoàn</th>
+                      <th style={styles.th}>Mật khẩu</th>
+                    </tr>
+                  </thead>
+                  <tbody>
                     {selectedGuildStudents.map((s) => (
-                      <tr key={`row-${s.id}`}>
-                        <td style={styles.td}>{s.avatarUrl ? <img src={s.avatarUrl} alt={s.name} style={styles.avatarSm} /> : <div style={styles.avatarFallbackSm}>{s.name.slice(0, 1)}</div>}</td>
+                      <tr key={`password-row-${s.id}`}>
                         <td style={styles.td}>{s.name}</td>
                         <td style={styles.td}>{s.username}</td>
-                        <td style={styles.td}>{s.password}</td>
                         <td style={styles.td}>{s.className}</td>
                         <td style={styles.td}>{guildById.get(s.guildId)?.name || "-"}</td>
                         <td style={styles.td}>
-                          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                            <button style={styles.secondaryBtn} onClick={() => editMember(s)}>Sửa thông tin</button>
-                            <button style={styles.dangerBtn} onClick={() => removeMember(s.id)}>Xóa</button>
-                          </div>
+                          <input
+                            style={{ ...styles.input, minWidth: 140, margin: 0 }}
+                            value={s.password}
+                            onChange={(e) =>
+                              setStudents((prev) =>
+                                prev.map((student) =>
+                                  student.id === s.id
+                                    ? { ...student, password: e.target.value }
+                                    : student
+                                )
+                              )
+                            }
+                            placeholder="Nhập mật khẩu"
+                          />
                         </td>
                       </tr>
                     ))}
@@ -4347,7 +4416,7 @@ function launchTerritoryRaid() {
                           <div style={{ fontSize: 20, fontWeight: 700 }}>{s.name}</div>
                         </div>
                         <div>{s.username} · {s.className} · {guild.name}</div>
-                        <div>Mật khẩu hiện tại: {s.password}</div>
+                        <div>Chức vụ: {getRoleLabel(s.id, guild)} · Buff chức vụ: +{getRoleBuffPercent(s.id, guild)}% · Tổng buff: +{getTotalBuffPercent(s.id, guild)}%</div>
                         <div>Điểm tuần: {s.weeklyPoints} · Tổng: {s.totalPoints}</div>
                         <div>Thú: {s.beast ? `${s.beast.species} (${s.beast.element})` : "Chưa có"}</div>
                         {s.beast && (
@@ -4582,13 +4651,38 @@ function launchTerritoryRaid() {
                       <div>Số thành viên: <b>{members.length}</b></div>
                       <div style={{ marginTop: 12 }}>
                         <div style={{ fontWeight: 700, marginBottom: 8 }}>Thành viên</div>
-                        <div style={styles.avatarRow}>
-                          {members.length ? members.map((member) => (
-                            <div key={member.id} style={styles.avatarBadge}>
-                              {member.avatarUrl ? <img src={member.avatarUrl} alt={member.name} style={styles.avatarSm} /> : <div style={styles.avatarFallbackSm}>{member.name.slice(0, 1)}</div>}
-                              <span>{member.name}</span>
-                            </div>
-                          )) : <span>Chưa có thành viên</span>}
+                        <div style={{ display: "grid", gap: 8 }}>
+                          {members.length ? members.map((member) => {
+                            const roleBuff = getRoleBuffPercent(member.id, guild);
+                            const totalBuff = getTotalBuffPercent(member.id, guild);
+                            return (
+                              <div
+                                key={member.id}
+                                style={{
+                                  display: "flex",
+                                  justifyContent: "space-between",
+                                  gap: 12,
+                                  padding: "10px 12px",
+                                  border: "1px solid #e2e8f0",
+                                  borderRadius: 12,
+                                  background: "#f8fafc",
+                                  alignItems: "center",
+                                  flexWrap: "wrap",
+                                }}
+                              >
+                                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                                  {member.avatarUrl ? <img src={member.avatarUrl} alt={member.name} style={styles.avatarSm} /> : <div style={styles.avatarFallbackSm}>{member.name.slice(0, 1)}</div>}
+                                  <div>
+                                    <div style={{ fontWeight: 700 }}>{member.name}</div>
+                                    <div style={{ fontSize: 12, color: "#64748b" }}>{getRoleLabel(member.id, guild)}</div>
+                                  </div>
+                                </div>
+                                <div style={{ fontSize: 13 }}>Buff quân đoàn: <b>+{guild.buffPercent}%</b></div>
+                                <div style={{ fontSize: 13 }}>Buff chức vụ: <b>+{roleBuff}%</b></div>
+                                <div style={{ fontSize: 13 }}>Tổng buff: <b style={{ color: "#2563eb" }}>+{totalBuff}%</b></div>
+                              </div>
+                            );
+                          }) : <span>Chưa có thành viên</span>}
                         </div>
                       </div>
                     </div>
