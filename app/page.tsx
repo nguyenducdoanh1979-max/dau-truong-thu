@@ -286,6 +286,121 @@ const BOSS_GEAR_RARITY_POOL: Rarity[] = ["Đỏ", "Tím", "Cam"];
 const BOSS_CHEST_MAX_RARITY: Rarity = "Xanh dương";
 const BOSS_KILLER_RARITY: Rarity = "Vàng";
 
+const LOGIN_FORMULA_CARDS = [
+  {
+    title: "Định lý Pitago",
+    formula: "a² + b² = c²",
+    note: "Áp dụng cho tam giác vuông, trong đó c là cạnh huyền.",
+  },
+  {
+    title: "Tổng ba góc tam giác",
+    formula: "A + B + C = 180°",
+    note: "Mọi tam giác đều có tổng ba góc bằng 180 độ.",
+  },
+  {
+    title: "Diện tích tam giác",
+    formula: "S = a × h : 2",
+    note: "Lấy đáy nhân chiều cao rồi chia 2.",
+  },
+  {
+    title: "Chu vi đường tròn",
+    formula: "C = 2πR",
+    note: "R là bán kính đường tròn.",
+  },
+  {
+    title: "Diện tích hình tròn",
+    formula: "S = πR²",
+    note: "Công thức nền tảng của hình học cấp 2.",
+  },
+  {
+    title: "Trung bình cộng",
+    formula: "TB = (x₁ + x₂ + ... + xₙ) / n",
+    note: "Rất hay gặp trong bài toán thống kê cơ bản.",
+  },
+] as const;
+
+const LOGIN_BEAST_SHOWCASE = [
+  {
+    name: "Rồng Đá Cổ",
+    rarity: "Huyền thoại",
+    element: "Thổ",
+    image: getBeastImage("Rồng Đá"),
+    aura: "0 0 36px rgba(251,146,60,0.45)",
+    lore: "Thú cổ đại trấn thủ chiến trường, giáp đá có thể nghiền nát mọi đòn đánh.",
+  },
+  {
+    name: "Lân Phong Thiên Ảnh",
+    rarity: "Sử thi",
+    element: "Phong",
+    image: getBeastImage("Lân Phong"),
+    aura: "0 0 34px rgba(45,212,191,0.42)",
+    lore: "Lướt gió cực nhanh, phù hợp với kèo tốc độ và phản công liên hoàn.",
+  },
+  {
+    name: "Long Ngư Triều Vương",
+    rarity: "Huyền thoại",
+    element: "Thủy",
+    image: getBeastImage("Long Ngư"),
+    aura: "0 0 34px rgba(59,130,246,0.42)",
+    lore: "Thống trị thủy vực, nổi tiếng với khả năng bồi thêm sát thương chuẩn.",
+  },
+  {
+    name: "Hổ Lửa Bạo Kích",
+    rarity: "Sử thi",
+    element: "Hỏa",
+    image: getBeastImage("Hổ Lửa"),
+    aura: "0 0 34px rgba(249,115,22,0.42)",
+    lore: "Một cú vồ có thể đảo chiều trận đấu nếu đối thủ thiếu phòng ngự.",
+  },
+  {
+    name: "Sói Băng Nguyệt Ảnh",
+    rarity: "Sử thi",
+    element: "Băng",
+    image: getBeastImage("Sói Băng"),
+    aura: "0 0 34px rgba(125,211,252,0.42)",
+    lore: "Khống chế tốt, thích hợp cho các trận kéo dài và phòng thủ phản đòn.",
+  },
+] as const;
+
+const LOGIN_ITEM_SHOWCASE = [
+  {
+    name: "Thần Kiếm Nhật Viêm",
+    rarity: "Cam + Dòng hiếm",
+    slot: "Vũ khí",
+    image: getItemImage("Vũ khí"),
+    bonuses: ["ATK +96", "SPD +18", "+25% sát thương", "+15% bạo kích ẩn"],
+  },
+  {
+    name: "Chiến Giáp Thiên Kim",
+    rarity: "Cam + Dòng hiếm",
+    slot: "Giáp",
+    image: getItemImage("Giáp"),
+    bonuses: ["DEF +96", "HP +240", "+10% hồi máu", "+8% kháng sát thương"],
+  },
+  {
+    name: "Mũ Huyền Băng",
+    rarity: "Cam + Dòng hiếm",
+    slot: "Mũ",
+    image: getItemImage("Mũ"),
+    bonuses: ["ATK +36", "DEF +36", "+12% chí mạng", "+1 tầng hộ giáp đầu trận"],
+  },
+  {
+    name: "Giày Lốc Ảnh",
+    rarity: "Cam + Dòng hiếm",
+    slot: "Giày",
+    image: getItemImage("Giày"),
+    bonuses: ["SPD +24", "HP +80", "+12% né tránh", "+10% bỏ qua khắc hệ"],
+  },
+] as const;
+
+const LOGIN_GEOMETRY_FACTS = [
+  "Hai góc đối đỉnh thì bằng nhau.",
+  "Đường trung tuyến xuất phát từ đỉnh nối với trung điểm cạnh đối diện.",
+  "Tia phân giác chia một góc thành hai góc bằng nhau.",
+  "Trong tam giác cân, hai góc ở đáy bằng nhau.",
+  "Đường kính là dây lớn nhất của đường tròn.",
+] as const;
+
 
 function getEggStage(guildLevel: number) {
   if (guildLevel >= 6) return "hatch";
@@ -1679,6 +1794,87 @@ export default function Page() {
   const questionFormRef = useRef<HTMLDivElement | null>(null);
   const autoSubmittedRef = useRef(false);
   const resolvingConquestRef = useRef(false);
+
+  const loginShowcase = useMemo(() => {
+    const formula = LOGIN_FORMULA_CARDS[Math.floor(Math.random() * LOGIN_FORMULA_CARDS.length)];
+    const beast = LOGIN_BEAST_SHOWCASE[Math.floor(Math.random() * LOGIN_BEAST_SHOWCASE.length)];
+    const item = LOGIN_ITEM_SHOWCASE[Math.floor(Math.random() * LOGIN_ITEM_SHOWCASE.length)];
+    const fact = LOGIN_GEOMETRY_FACTS[Math.floor(Math.random() * LOGIN_GEOMETRY_FACTS.length)];
+    return { formula, beast, item, fact };
+  }, []);
+
+  function renderLoginShell(content: React.ReactNode, mode: "select" | "admin" | "student") {
+    const modeTitle = mode === "select" ? "Chiến trường học tập" : mode === "admin" ? "Cổng điều phối giáo viên" : "Khu đăng nhập chiến binh";
+    const modeText = mode === "select"
+      ? "Giải bài - nhận điểm - mở khóa thú chiến - tranh hạng quân đoàn."
+      : mode === "admin"
+        ? "Điều phối nhiệm vụ, quản lý thành viên, bật boss thế giới và theo dõi bảng xếp hạng."
+        : "Đăng nhập để làm bài, tăng lực chiến thú, săn trang bị hiếm và leo bảng xếp hạng.";
+
+    return (
+      <div style={styles.loginBg}>
+        <div style={styles.loginSceneWrap}>
+          <div style={{ ...styles.loginAura, top: 48, left: 70, background: "rgba(59,130,246,0.22)" }} />
+          <div style={{ ...styles.loginAura, right: 80, bottom: 40, background: "rgba(251,146,60,0.18)" }} />
+
+          <div style={styles.loginSideColumn}>
+            <div style={styles.loginHeroCard}>
+              <div style={styles.loginHeroBadge}>{modeTitle}</div>
+              <div style={styles.loginHeroTitle}>Đấu Trường Thú</div>
+              <div style={styles.loginHeroText}>{modeText}</div>
+              <div style={styles.loginChipRow}>
+                <span style={styles.loginChip}>📘 Toán học cấp 2</span>
+                <span style={styles.loginChip}>🐉 Thú sử thi</span>
+                <span style={styles.loginChip}>🟠 Trang bị cam</span>
+              </div>
+            </div>
+
+            <div style={styles.loginFormulaCard}>
+              <div style={styles.loginSectionLabel}>Công thức hôm nay</div>
+              <div style={styles.loginFormulaTitle}>{loginShowcase.formula.title}</div>
+              <div style={styles.loginFormulaValue}>{loginShowcase.formula.formula}</div>
+              <div style={styles.loginFormulaNote}>{loginShowcase.formula.note}</div>
+              <div style={styles.loginFactLine}>📐 {loginShowcase.fact}</div>
+            </div>
+          </div>
+
+          <div style={styles.loginCenterColumn}>
+            {content}
+          </div>
+
+          <div style={styles.loginSideColumn}>
+            <div style={styles.loginCreatureCard}>
+              <div style={styles.loginSectionLabel}>Thú sử thi / huyền thoại</div>
+              <div style={{ ...styles.loginCreatureImageWrap, boxShadow: loginShowcase.beast.aura }}>
+                <img src={loginShowcase.beast.image} alt={loginShowcase.beast.name} style={styles.loginCreatureImage} />
+              </div>
+              <div style={styles.loginCreatureName}>{loginShowcase.beast.name}</div>
+              <div style={styles.loginCreatureMeta}>{loginShowcase.beast.rarity} · Hệ {loginShowcase.beast.element}</div>
+              <div style={styles.loginCreatureLore}>{loginShowcase.beast.lore}</div>
+            </div>
+
+            <div style={styles.loginItemCard}>
+              <div style={styles.loginSectionLabel}>Trang bị hiếm đang nổi bật</div>
+              <div style={styles.loginItemTop}>
+                <div style={styles.loginItemImageWrap}>
+                  <img src={loginShowcase.item.image} alt={loginShowcase.item.name} style={styles.loginItemImage} />
+                </div>
+                <div>
+                  <div style={styles.loginItemName}>{loginShowcase.item.name}</div>
+                  <div style={styles.loginItemMeta}>{loginShowcase.item.rarity} · {loginShowcase.item.slot}</div>
+                </div>
+              </div>
+              <div style={styles.loginItemBonusList}>
+                {loginShowcase.item.bonuses.map((bonus) => (
+                  <div key={bonus} style={styles.loginItemBonus}>✦ {bonus}</div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   useEffect(() => {
     const raw = localStorage.getItem(STORAGE_KEY) || LEGACY_STORAGE_KEYS.map((key) => localStorage.getItem(key)).find(Boolean) || null;
@@ -3765,46 +3961,43 @@ function launchTerritoryRaid() {
   if (!hydrated) return <div style={{ padding: 24 }}>Đang tải...</div>;
 
   if (role === "select") {
-    return (
-      <div style={styles.loginBg}>
-        <div style={styles.loginCard}>
-          <h1 style={{ margin: 0, fontSize: 30 }}>Đấu Trường Thú</h1>
-          <p style={{ color: "#64748b", marginTop: 8 }}>Chọn khu vực đăng nhập</p>
-          <button style={styles.primaryBtn} onClick={() => setRole("admin_login")}>Đăng nhập giáo viên</button>
-          <button style={styles.secondaryBtn} onClick={() => setRole("student_login")}>Đăng nhập học sinh</button>
-          <div style={styles.copyright}>Bản quyền tác giả: Nguyễn Đức Doanh - THCS Đông Xá - Vân Đồn - Quảng Ninh. SĐT: 0388584296</div>
-        </div>
-      </div>
+    return renderLoginShell(
+      <div style={styles.loginCard}>
+        <h1 style={{ margin: 0, fontSize: 30 }}>Đấu Trường Thú</h1>
+        <p style={{ color: "#64748b", marginTop: 8 }}>Chọn khu vực đăng nhập</p>
+        <button style={styles.primaryBtn} onClick={() => setRole("admin_login")}>Đăng nhập giáo viên</button>
+        <button style={styles.secondaryBtn} onClick={() => setRole("student_login")}>Đăng nhập học sinh</button>
+        <div style={styles.copyright}>Bản quyền tác giả: Nguyễn Đức Doanh - THCS Đông Xá - Vân Đồn - Quảng Ninh. SĐT: 0388584296</div>
+      </div>,
+      "select"
     );
   }
 
   if (role === "admin_login") {
-    return (
-      <div style={styles.loginBg}>
-        <div style={styles.loginCard}>
-          <h1 style={{ margin: 0, fontSize: 30 }}>Đăng nhập giáo viên</h1>
-          <input style={styles.input} value={loginUser} onChange={(e) => setLoginUser(e.target.value)} placeholder="Tên đăng nhập" />
-          <input style={styles.input} type="password" value={loginPass} onChange={(e) => setLoginPass(e.target.value)} placeholder="Mật khẩu" />
-          <button style={styles.primaryBtn} onClick={handleAdminLogin}>Đăng nhập</button>
-          <button style={styles.secondaryBtn} onClick={() => setRole("select")}>Quay lại</button>
-          <div style={styles.copyright}>Bản quyền tác giả: Nguyễn Đức Doanh - THCS Đông Xá - Vân Đồn - Quảng Ninh. SĐT: 0388584296</div>
-        </div>
-      </div>
+    return renderLoginShell(
+      <div style={styles.loginCard}>
+        <h1 style={{ margin: 0, fontSize: 30 }}>Đăng nhập giáo viên</h1>
+        <input style={styles.input} value={loginUser} onChange={(e) => setLoginUser(e.target.value)} placeholder="Tên đăng nhập" />
+        <input style={styles.input} type="password" value={loginPass} onChange={(e) => setLoginPass(e.target.value)} placeholder="Mật khẩu" />
+        <button style={styles.primaryBtn} onClick={handleAdminLogin}>Đăng nhập</button>
+        <button style={styles.secondaryBtn} onClick={() => setRole("select")}>Quay lại</button>
+        <div style={styles.copyright}>Bản quyền tác giả: Nguyễn Đức Doanh - THCS Đông Xá - Vân Đồn - Quảng Ninh. SĐT: 0388584296</div>
+      </div>,
+      "admin"
     );
   }
 
   if (role === "student_login") {
-    return (
-      <div style={styles.loginBg}>
-        <div style={styles.loginCard}>
-          <h1 style={{ margin: 0, fontSize: 30 }}>Đăng nhập học sinh</h1>
-          <input style={styles.input} value={studentUser} onChange={(e) => setStudentUser(e.target.value)} placeholder="Tên đăng nhập" />
-          <input style={styles.input} type="password" value={studentPass} onChange={(e) => setStudentPass(e.target.value)} placeholder="Mật khẩu" />
-          <button style={styles.primaryBtn} onClick={handleStudentLogin}>Đăng nhập</button>
-          <button style={styles.secondaryBtn} onClick={() => setRole("select")}>Quay lại</button>
-          <div style={styles.copyright}>Bản quyền tác giả: Nguyễn Đức Doanh - THCS Đông Xá - Vân Đồn - Quảng Ninh. SĐT: 0388584296</div>
-        </div>
-      </div>
+    return renderLoginShell(
+      <div style={styles.loginCard}>
+        <h1 style={{ margin: 0, fontSize: 30 }}>Đăng nhập học sinh</h1>
+        <input style={styles.input} value={studentUser} onChange={(e) => setStudentUser(e.target.value)} placeholder="Tên đăng nhập" />
+        <input style={styles.input} type="password" value={studentPass} onChange={(e) => setStudentPass(e.target.value)} placeholder="Mật khẩu" />
+        <button style={styles.primaryBtn} onClick={handleStudentLogin}>Đăng nhập</button>
+        <button style={styles.secondaryBtn} onClick={() => setRole("select")}>Quay lại</button>
+        <div style={styles.copyright}>Bản quyền tác giả: Nguyễn Đức Doanh - THCS Đông Xá - Vân Đồn - Quảng Ninh. SĐT: 0388584296</div>
+      </div>,
+      "student"
     );
   }
 
@@ -5754,8 +5947,38 @@ Hình: https://...`}
 }
 
 const styles: Record<string, React.CSSProperties> = {
-  loginBg: { minHeight: "100vh", display: "flex", justifyContent: "center", alignItems: "center", background: "linear-gradient(135deg, #0f172a, #2563eb)", padding: 24 },
-  loginCard: { width: 460, maxWidth: "100%", background: "white", borderRadius: 24, padding: 28, boxShadow: "0 20px 40px rgba(0,0,0,0.2)", display: "grid", gap: 12 },
+  loginBg: { minHeight: "100vh", display: "flex", justifyContent: "center", alignItems: "center", background: "radial-gradient(circle at top left, rgba(37,99,235,0.28), transparent 26%), radial-gradient(circle at bottom right, rgba(251,146,60,0.16), transparent 24%), linear-gradient(135deg, #0f172a, #2563eb)", padding: 24, overflow: "hidden" },
+  loginSceneWrap: { width: "min(1480px, 100%)", display: "grid", gridTemplateColumns: "minmax(280px, 1fr) minmax(420px, 520px) minmax(280px, 1fr)", gap: 24, alignItems: "stretch", position: "relative" },
+  loginSideColumn: { display: "grid", gap: 18, alignContent: "center", position: "relative", zIndex: 1 },
+  loginCenterColumn: { display: "flex", justifyContent: "center", alignItems: "center", position: "relative", zIndex: 2 },
+  loginAura: { position: "absolute", width: 240, height: 240, borderRadius: "50%", filter: "blur(38px)", pointerEvents: "none" },
+  loginCard: { width: 460, maxWidth: "100%", background: "rgba(255,255,255,0.95)", backdropFilter: "blur(12px)", borderRadius: 24, padding: 28, boxShadow: "0 24px 48px rgba(0,0,0,0.22)", display: "grid", gap: 12, border: "1px solid rgba(255,255,255,0.5)" },
+  loginHeroCard: { background: "linear-gradient(135deg, rgba(15,23,42,0.84), rgba(30,64,175,0.82))", color: "#fff", borderRadius: 26, padding: 24, boxShadow: "0 18px 44px rgba(15,23,42,0.26)", border: "1px solid rgba(255,255,255,0.14)" },
+  loginHeroBadge: { display: "inline-flex", alignItems: "center", padding: "6px 12px", borderRadius: 999, fontSize: 12, fontWeight: 800, letterSpacing: 0.3, background: "rgba(255,255,255,0.16)", border: "1px solid rgba(255,255,255,0.16)" },
+  loginHeroTitle: { fontSize: 38, lineHeight: 1.08, fontWeight: 900, marginTop: 18, textShadow: "0 4px 24px rgba(0,0,0,0.24)" },
+  loginHeroText: { marginTop: 12, color: "rgba(255,255,255,0.84)", fontSize: 16, lineHeight: 1.6 },
+  loginChipRow: { display: "flex", flexWrap: "wrap", gap: 10, marginTop: 18 },
+  loginChip: { display: "inline-flex", alignItems: "center", padding: "8px 12px", borderRadius: 999, background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.15)", color: "#fff", fontSize: 13, fontWeight: 700 },
+  loginFormulaCard: { background: "rgba(255,255,255,0.95)", borderRadius: 22, padding: 22, boxShadow: "0 18px 40px rgba(15,23,42,0.14)", border: "1px solid rgba(255,255,255,0.42)" },
+  loginSectionLabel: { display: "inline-flex", alignItems: "center", padding: "5px 10px", borderRadius: 999, background: "#dbeafe", color: "#1d4ed8", fontSize: 12, fontWeight: 800, marginBottom: 12 },
+  loginFormulaTitle: { fontSize: 16, fontWeight: 800, color: "#0f172a" },
+  loginFormulaValue: { fontSize: 28, fontWeight: 900, color: "#1d4ed8", marginTop: 8, letterSpacing: 0.4 },
+  loginFormulaNote: { marginTop: 8, fontSize: 14, color: "#475569", lineHeight: 1.6 },
+  loginFactLine: { marginTop: 14, paddingTop: 12, borderTop: "1px dashed #cbd5e1", fontSize: 14, color: "#0f172a", fontWeight: 600 },
+  loginCreatureCard: { background: "linear-gradient(180deg, rgba(255,255,255,0.96), rgba(248,250,252,0.92))", borderRadius: 26, padding: 22, boxShadow: "0 18px 40px rgba(15,23,42,0.16)", border: "1px solid rgba(255,255,255,0.46)" },
+  loginCreatureImageWrap: { height: 230, borderRadius: 24, background: "radial-gradient(circle at center, rgba(37,99,235,0.12), rgba(15,23,42,0.02))", display: "flex", alignItems: "center", justifyContent: "center", border: "1px solid #dbeafe" },
+  loginCreatureImage: { width: "88%", height: "88%", objectFit: "contain", filter: "drop-shadow(0 12px 24px rgba(15,23,42,0.18))" },
+  loginCreatureName: { fontSize: 20, fontWeight: 900, color: "#0f172a", marginTop: 14 },
+  loginCreatureMeta: { fontSize: 13, color: "#1d4ed8", fontWeight: 800, marginTop: 6 },
+  loginCreatureLore: { fontSize: 14, color: "#475569", lineHeight: 1.6, marginTop: 10 },
+  loginItemCard: { background: "linear-gradient(135deg, rgba(255,247,237,0.98), rgba(255,255,255,0.96))", borderRadius: 24, padding: 22, boxShadow: "0 18px 40px rgba(249,115,22,0.14)", border: "1px solid rgba(251,146,60,0.24)" },
+  loginItemTop: { display: "flex", gap: 14, alignItems: "center" },
+  loginItemImageWrap: { width: 72, height: 72, borderRadius: 18, background: "linear-gradient(135deg, rgba(251,146,60,0.22), rgba(250,204,21,0.14))", display: "flex", alignItems: "center", justifyContent: "center", border: "1px solid rgba(251,146,60,0.28)" },
+  loginItemImage: { width: 52, height: 52, objectFit: "contain" },
+  loginItemName: { fontSize: 18, fontWeight: 900, color: "#7c2d12" },
+  loginItemMeta: { marginTop: 4, fontSize: 13, color: "#c2410c", fontWeight: 800 },
+  loginItemBonusList: { display: "grid", gap: 8, marginTop: 14 },
+  loginItemBonus: { fontSize: 14, color: "#7c2d12", background: "rgba(255,255,255,0.7)", borderRadius: 12, padding: "9px 12px", border: "1px solid rgba(251,146,60,0.18)" },
   header: { background: "linear-gradient(135deg, #0f172a, #1d4ed8)", color: "white", padding: 20, display: "flex", justifyContent: "space-between", alignItems: "center" },
   headerStudent: { background: "linear-gradient(135deg, #0f172a, #1d4ed8)", color: "white", padding: 20, borderRadius: 20, display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 },
   tabs: { display: "flex", gap: 10, flexWrap: "wrap", padding: 16 },
@@ -5778,6 +6001,7 @@ const styles: Record<string, React.CSSProperties> = {
   td: { padding: "12px 16px", textAlign: "left", color: "#334155", borderBottom: "1px solid #eef2f7", verticalAlign: "top" },
   footer: { textAlign: "center", color: "#475569", padding: 18, fontSize: 13 },
   copyright: { textAlign: "center", color: "#64748b", fontSize: 12, marginTop: 8 },
+  loginMobileHint: { textAlign: "center", color: "#64748b", fontSize: 12, marginTop: 10 },
   avatarRow: { display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center" },
   avatarBadge: { display: "inline-flex", alignItems: "center", gap: 8, padding: "6px 10px", borderRadius: 999, background: "#f8fafc", border: "1px solid #e2e8f0", fontSize: 13, color: "#334155" },
   avatarSm: { width: 36, height: 36, borderRadius: "50%", objectFit: "cover", border: "2px solid #e2e8f0", flexShrink: 0 },
