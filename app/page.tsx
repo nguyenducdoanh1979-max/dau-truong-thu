@@ -831,6 +831,25 @@ function getViceCount(n: number) {
   return n > 1 ? 1 : 0;
 }
 
+function getGuildLeaderUnlockTime(guild?: Guild | null) {
+  if (!guild?.reachedLevel12At) return null;
+  const hatchTime = new Date(guild.reachedLevel12At).getTime();
+  if (Number.isNaN(hatchTime)) return null;
+  return hatchTime + 3 * 24 * 60 * 60 * 1000;
+}
+
+function getGuildLeaderCountdownText(guild?: Guild | null) {
+  const unlockTime = getGuildLeaderUnlockTime(guild);
+  if (!unlockTime) return "-";
+  const remainMs = unlockTime - Date.now();
+  if (remainMs <= 0) return "Đã đến lúc chốt đoàn trưởng";
+  const totalMinutes = Math.floor(remainMs / 60000);
+  const days = Math.floor(totalMinutes / (24 * 60));
+  const hours = Math.floor((totalMinutes % (24 * 60)) / 60);
+  const minutes = totalMinutes % 60;
+  return `${days} ngày ${String(hours).padStart(2, "0")} giờ ${String(minutes).padStart(2, "0")} phút`;
+}
+
 function getRoleBuffPercent(studentId: number, guild?: Guild | null) {
   if (!guild) return 0;
   if (guild.leaderStudentId === studentId) return 5;
@@ -838,17 +857,29 @@ function getRoleBuffPercent(studentId: number, guild?: Guild | null) {
   return 0;
 }
 
-function getRoleLabel(studentId: number, guild?: Guild | null) {
-  if (!guild) return "Thành viên";
-  if (guild.leaderStudentId === studentId) return "Đoàn trưởng";
-  if (guild.viceLeaderStudentIds.includes(studentId)) return "Đoàn phó";
-  return "Thành viên";
-}
-
 function getTotalBuffPercent(studentId: number, guild?: Guild | null) {
   if (!guild) return 0;
   return guild.buffPercent + getRoleBuffPercent(studentId, guild);
 }
+
+function getRoleLabel(studentId: number, guild?: Guild | null) {
+  if (!guild) return "Thành viên";
+  if (guild.leaderStudentId === studentId) return "Đoàn trưởng";
+  if (guild.viceLeaderStudentIds.includes(studentId)) return `Đoàn phó ${guild.viceLeaderStudentIds.indexOf(studentId) + 1}`;
+  return "Thành viên";
+}
+
+const MYTHIC_SHOWCASE_SPECIES = [
+  "Rồng Đá",
+  "Lân Phong",
+  "Hổ Lửa",
+  "Long Ngư",
+  "Sói Băng",
+  "Ưng Gió",
+  "Gấu Tuyết",
+  "Tê Giác Đất",
+  "Chim Lửa",
+];
 
 function beastStats(student: Student) {
   if (!student.beast) return null;
@@ -871,8 +902,8 @@ function beastPower(student: Student, guild: Guild) {
   const st = beastStats(student);
   if (!st || !student.beast) return 0;
   const raw = st.atk * 2 + st.def * 1.8 + st.hp * 0.5 + st.spd * 2.2 + student.beast.quality * 3 + student.beast.level * 10;
-  const roleBuffPercent = guild.leaderStudentId === student.id ? 5 : guild.viceLeaderStudentIds.includes(student.id) ? 2 : 0;
-  const totalPercentBuff = guild.buffPercent + roleBuffPercent;
+  const roleBuffPercent = getRoleBuffPercent(student.id, guild);
+  const totalPercentBuff = getTotalBuffPercent(student.id, guild);
   const totalStatBuff = 1 + totalPercentBuff / 100;
   const weaponDamageBuff = 1 + (st.damagePercent || 0) / 100;
   return Math.round(raw * totalStatBuff * weaponDamageBuff);
@@ -1579,9 +1610,6 @@ export default function Page() {
   const [newPass, setNewPass] = useState("");
   const [resetPasswordInput, setResetPasswordInput] = useState("");
   const [showResetBox, setShowResetBox] = useState(false);
-  const [passwordManagerClassFilter, setPasswordManagerClassFilter] = useState("Tất cả");
-  const [passwordManagerSearch, setPasswordManagerSearch] = useState("");
-  const [showStudentPasswords, setShowStudentPasswords] = useState(false);
   const [qQuestion, setQQuestion] = useState("");
   const [qA, setQA] = useState("");
   const [qB, setQB] = useState("");
@@ -1746,7 +1774,7 @@ export default function Page() {
   }, [bossEvent, students]);
   const currentStudent = useMemo(() => students.find((s) => s.id === currentStudentId) || null, [students, currentStudentId]);
   const recentHatchGuilds = useMemo(
-    () => activeGuilds.filter((g) => g.level >= 10 && !!g.reachedLevel12At && isRecentTimestamp(g.reachedLevel12At, 15 * 60 * 1000)),
+    () => activeGuilds.filter((g) => g.level >= 6 && !!g.reachedLevel12At && isRecentTimestamp(g.reachedLevel12At, 15 * 60 * 1000)),
     [activeGuilds]
   );
   const activeAssignment = useMemo(() => assignments.find((a) => a.id === activeAssignmentId) || null, [assignments, activeAssignmentId]);
@@ -1853,24 +1881,6 @@ export default function Page() {
     () => Array.from(new Set([...DEFAULT_CLASS_SUGGESTIONS, ...students.map((s) => s.className).filter(Boolean), ...questions.map((q) => q.className).filter(Boolean), assignmentClassName, memberClassName, qClassName])).sort(),
     [students, questions, assignmentClassName, memberClassName, qClassName]
   );
-  const passwordManagerStudents = useMemo(() => {
-    const keyword = passwordManagerSearch.trim().toLowerCase();
-    return students
-      .filter((student) => {
-        if (passwordManagerClassFilter !== "Tất cả" && student.className !== passwordManagerClassFilter) return false;
-        if (!keyword) return true;
-        return [student.name, student.username, student.className, guildById.get(student.guildId)?.name || ""]
-          .join(" ")
-          .toLowerCase()
-          .includes(keyword);
-      })
-      .sort((a, b) =>
-        a.className.localeCompare(b.className) ||
-        (guildById.get(a.guildId)?.name || "").localeCompare(guildById.get(b.guildId)?.name || "") ||
-        a.name.localeCompare(b.name)
-      );
-  }, [students, passwordManagerClassFilter, passwordManagerSearch, guildById]);
-
   const questionGroupOptions = useMemo(() => {
   const groups = [
     ...DEFAULT_GROUP_SUGGESTIONS,
@@ -2220,12 +2230,19 @@ export default function Page() {
     });
 
     newGuilds = newGuilds.map((g) => {
-      const members = newStudents.filter((s) => s.guildId === g.id && s.beast);
-      if (members.length === 0) return g;
-      const ranked = [...members].sort((a, b) => beastPower(b, g) - beastPower(a, g));
-      const leaderId = ranked[0]?.id || null;
-      const viceCount = getViceCount(ranked.length);
-      const viceIds = ranked.filter((x) => x.id !== leaderId).slice(0, viceCount).map((x) => x.id);
+      const allMembers = newStudents.filter((s) => s.guildId === g.id);
+      const beastMembers = allMembers.filter((s) => s.beast);
+      if (beastMembers.length === 0) return { ...g, leaderStudentId: null, viceLeaderStudentIds: [] };
+      const ranked = [...beastMembers].sort((a, b) => beastPower(b, g) - beastPower(a, g));
+      const unlockTime = getGuildLeaderUnlockTime(g);
+      const canLockLeader = !!unlockTime && Date.now() >= unlockTime;
+      const currentLeaderValid = !!g.leaderStudentId && beastMembers.some((member) => member.id === g.leaderStudentId);
+      const leaderId = currentLeaderValid ? g.leaderStudentId || null : canLockLeader ? ranked[0]?.id || null : null;
+      const viceCount = getViceCount(allMembers.length);
+      const viceIds = ranked
+        .filter((member) => member.id !== leaderId)
+        .slice(0, viceCount)
+        .map((member) => member.id);
       return { ...g, leaderStudentId: leaderId, viceLeaderStudentIds: viceIds };
     });
 
@@ -3828,7 +3845,7 @@ function launchTerritoryRaid() {
             <div>Điểm uy danh: <b>{currentStudent.prestigePoints || 0}</b></div>
             <div>Lực chiến: <b>{beastPower(currentStudent, guild)}</b></div>
             <div style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>Uy danh từ đơn đấu chỉ nhận khi lực chiến thấp hơn mà vẫn thắng. Uy danh tự động cường hóa đều theo thứ tự: Vũ khí → Giáp → Mũ → Giày.</div>
-            <div style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>Buff sức mạnh: Quân đoàn +{guild.buffPercent}% · Chức vụ +{getRoleBuffPercent(currentStudent.id, guild)}% · Tổng buff +{getTotalBuffPercent(currentStudent.id, guild)}%</div>
+            <div style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>Buff sức mạnh: Quân đoàn +{guild.buffPercent}%{guild.leaderStudentId === currentStudent.id ? " · Đoàn trưởng +5%" : guild.viceLeaderStudentIds.includes(currentStudent.id) ? " · Đoàn phó +2%" : ""}</div>
             <div style={{ marginTop: 12, display: "grid", gap: 8 }}>
               <div style={{ fontWeight: 700 }}>Đổi mật khẩu nhanh</div>
               <input style={styles.input} type="text" value={studentNewPassword} onChange={(e) => setStudentNewPassword(e.target.value)} placeholder="Nhập mật khẩu mới" />
@@ -4024,17 +4041,17 @@ function launchTerritoryRaid() {
                     </div>
                     <div style={{ textAlign: "center", marginTop: 12, fontSize: 22 }}><b>{currentStudent.beast.species}</b> · Hệ {currentStudent.beast.element}</div>
                     {isRecentTimestamp(guild.reachedLevel12At, 15 * 60 * 1000) && (
-                      <div style={styles.hatchCelebrationText}>🌟 Trứng quân đoàn vừa nở! Thú chiến đã thức tỉnh với hiệu ứng bùng nổ ánh sáng.</div>
+                      <div style={styles.hatchCelebrationText}>🌟 Trứng quân đoàn vừa nở ở cấp 6! Thú chiến đã thức tỉnh với hiệu ứng bùng nổ ánh sáng.</div>
                     )}
                   </>
                 ) : (
                   <div>
-                    <div style={{ ...styles.studentBeastFrame, ...styles.eggFrame, ...(guild.level >= 10 ? styles.eggGlowAnimated : {}), boxShadow: guild.level >= 10 ? "0 0 20px rgba(250,204,21,0.45)" : "0 0 10px rgba(148,163,184,0.25)" }}>
+                    <div style={{ ...styles.studentBeastFrame, ...styles.eggFrame, ...(guild.level >= 6 ? styles.eggGlowAnimated : {}), boxShadow: guild.level >= 6 ? "0 0 20px rgba(250,204,21,0.45)" : "0 0 10px rgba(148,163,184,0.25)" }}>
                       <img src={getEggImage(guild.level)} alt="egg" onError={(e) => { e.currentTarget.style.display = "none"; const next = e.currentTarget.nextElementSibling as HTMLElement | null; if (next) next.style.display = "flex"; }} style={{ ...styles.studentBeastImage, ...styles.eggAnimated }} /><div style={{ display: "none", alignItems: "center", justifyContent: "center", width: "100%", height: "100%", fontSize: 88 }}>🥚</div>
                     </div>
                     <div style={{ marginTop: 10, textAlign: "center", fontSize: 20, fontWeight: 800 }}>Trứng thú đang chờ nở</div><div style={{ marginTop: 6, textAlign: "center" }}>Quân đoàn cần đạt cấp 6 để thú xuất hiện và kích hoạt đầy đủ trang phục.</div>
                     <div style={{ fontSize: 13, color: "#64748b", marginTop: 6, textAlign: "center" }}>
-                      {guild.level >= 10 ? "Trứng đang phát sáng, sắp nở..." : guild.level >= 8 ? "Trứng đã bắt đầu ấp." : "Chưa đạt mốc ấp trứng."}
+                      {guild.level >= 6 ? "Trứng đã nở, đang đếm ngược 3 ngày để chốt đoàn trưởng." : guild.level >= 4 ? "Trứng đã bắt đầu ấp và phát sáng." : "Chưa đạt mốc ấp trứng."}
                     </div>
                   </div>
                 )}
@@ -4252,7 +4269,7 @@ function launchTerritoryRaid() {
           <div style={styles.serverBannerBadge}>HIỆU ỨNG NỞ TRỨNG</div>
           <div style={styles.serverBannerTitle}>🚀 Toàn server đang chúc mừng</div>
           <div style={styles.serverBannerText}>
-            {recentHatchGuilds.map((g) => `${g.name} đạt cấp 10 và mở khóa thú chiến`).join(" · ")}
+            {recentHatchGuilds.map((g) => `${g.name} đạt cấp 6 và mở khóa thú chiến`).join(" · ")}
           </div>
         </div>
       )}
@@ -4338,7 +4355,7 @@ function launchTerritoryRaid() {
             </div>
             <div style={styles.card}>
               <h3>Danh sách thành viên trong quân đoàn đã chọn</h3>
-              <div style={{ fontSize: 13, color: "#64748b", marginBottom: 10 }}>Tab này chỉ quản lý thông tin thành viên. Mật khẩu đã chuyển sang tab "Cài đặt". Phần cộng/trừ điểm đã chuyển sang tab "Điểm học sinh".</div>
+              <div style={{ fontSize: 13, color: "#64748b", marginBottom: 10 }}>Tab này chỉ quản lý thông tin thành viên. Phần cộng/trừ điểm đã chuyển sang tab "Điểm học sinh".</div>
               <div style={{ overflowX: "auto" }}>
                 <table style={styles.table}>
                   <thead>
@@ -4346,36 +4363,29 @@ function launchTerritoryRaid() {
                       <th style={styles.th}>Avatar</th>
                       <th style={styles.th}>Họ tên</th>
                       <th style={styles.th}>Tài khoản</th>
+                      <th style={styles.th}>Mật khẩu</th>
                       <th style={styles.th}>Lớp</th>
                       <th style={styles.th}>Quân đoàn</th>
-                      <th style={styles.th}>Chức vụ</th>
-                      <th style={styles.th}>Buff chức vụ</th>
-                      <th style={styles.th}>Tổng buff</th>
                       <th style={styles.th}>Tác vụ</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {selectedGuildStudents.map((s) => {
-                      const guild = guildById.get(s.guildId) || null;
-                      return (
-                        <tr key={`row-${s.id}`}>
-                          <td style={styles.td}>{s.avatarUrl ? <img src={s.avatarUrl} alt={s.name} style={styles.avatarSm} /> : <div style={styles.avatarFallbackSm}>{s.name.slice(0, 1)}</div>}</td>
-                          <td style={styles.td}>{s.name}</td>
-                          <td style={styles.td}>{s.username}</td>
-                          <td style={styles.td}>{s.className}</td>
-                          <td style={styles.td}>{guild?.name || "-"}</td>
-                          <td style={styles.td}>{getRoleLabel(s.id, guild)}</td>
-                          <td style={styles.td}>+{getRoleBuffPercent(s.id, guild)}%</td>
-                          <td style={styles.td}>+{getTotalBuffPercent(s.id, guild)}%</td>
-                          <td style={styles.td}>
-                            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                              <button style={styles.secondaryBtn} onClick={() => editMember(s)}>Sửa thông tin</button>
-                              <button style={styles.dangerBtn} onClick={() => removeMember(s.id)}>Xóa</button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
+                    {selectedGuildStudents.map((s) => (
+                      <tr key={`row-${s.id}`}>
+                        <td style={styles.td}>{s.avatarUrl ? <img src={s.avatarUrl} alt={s.name} style={styles.avatarSm} /> : <div style={styles.avatarFallbackSm}>{s.name.slice(0, 1)}</div>}</td>
+                        <td style={styles.td}>{s.name}</td>
+                        <td style={styles.td}>{s.username}</td>
+                        <td style={styles.td}>{s.password}</td>
+                        <td style={styles.td}>{s.className}</td>
+                        <td style={styles.td}>{guildById.get(s.guildId)?.name || "-"}</td>
+                        <td style={styles.td}>
+                          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                            <button style={styles.secondaryBtn} onClick={() => editMember(s)}>Sửa thông tin</button>
+                            <button style={styles.dangerBtn} onClick={() => removeMember(s.id)}>Xóa</button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>
@@ -4394,7 +4404,7 @@ function launchTerritoryRaid() {
                           <div style={{ fontSize: 20, fontWeight: 700 }}>{s.name}</div>
                         </div>
                         <div>{s.username} · {s.className} · {guild.name}</div>
-                        <div>Chức vụ: {getRoleLabel(s.id, guild)} · Buff chức vụ: +{getRoleBuffPercent(s.id, guild)}% · Tổng buff: +{getTotalBuffPercent(s.id, guild)}%</div>
+                        <div>Mật khẩu hiện tại: {s.password}</div>
                         <div>Điểm tuần: {s.weeklyPoints} · Tổng: {s.totalPoints}</div>
                         <div>Thú: {s.beast ? `${s.beast.species} (${s.beast.element})` : "Chưa có"}</div>
                         {s.beast && (
@@ -4454,7 +4464,7 @@ function launchTerritoryRaid() {
                           </div>
                         ) : (
                           <div style={styles.beastDisplayRow}>
-                            <div style={{ ...styles.eggFrameWide, ...(guild.level >= 10 ? styles.eggGlowAnimated : {}), boxShadow: guild.level >= 10 ? "0 0 18px rgba(250,204,21,0.35)" : "0 0 10px rgba(148,163,184,0.2)" }}>
+                            <div style={{ ...styles.eggFrameWide, ...(guild.level >= 6 ? styles.eggGlowAnimated : {}), boxShadow: guild.level >= 6 ? "0 0 18px rgba(250,204,21,0.35)" : "0 0 10px rgba(148,163,184,0.2)" }}>
                               <img src={getEggImage(guild.level)} alt="egg" style={{ ...styles.eggImageWide, ...styles.eggAnimated }} />
                               <div style={styles.beastOverlayTop}>
                                 <div style={{ ...styles.beastOverlayBadge, color: "#eab308", background: "rgba(255,255,255,0.92)", borderColor: "#f59e0b" }}>
@@ -4463,7 +4473,7 @@ function launchTerritoryRaid() {
                               </div>
                               <div style={styles.beastOverlayBottom}>
                                 <div style={styles.beastOverlayMuted}>Cấp bang {guild.level}</div>
-                                <div style={styles.beastOverlayMuted}>{guild.level >= 10 ? "Đang phát sáng" : guild.level >= 8 ? "Đang ấp" : "Chưa đủ cấp"}</div>
+                                <div style={styles.beastOverlayMuted}>{guild.level >= 6 ? "Đã nở / chờ chốt trưởng" : guild.level >= 4 ? "Đang ấp" : "Chưa đủ cấp"}</div>
                               </div>
                             </div>
                           </div>
@@ -4592,7 +4602,23 @@ function launchTerritoryRaid() {
           </div>
         )}
         {tab === "guilds" && (
-          <div style={{ display: "grid", gap: 16 }}>
+          <div style={{ display: "grid", gap: 18 }}>
+            <div style={styles.guildHeroCard}>
+              <div>
+                <div style={styles.guildHeroBadge}>Quân đoàn huyền thoại</div>
+                <div style={styles.guildHeroTitle}>Sảnh thú sử thi · trang bị cam</div>
+                <div style={styles.guildHeroText}>Đoàn phó được đếm theo tổng số thành viên quân đoàn, nhưng xếp hạng theo lực chiến thú. Từ 20 thành viên có 2 đoàn phó, từ 40 thành viên có 3 đoàn phó.</div>
+              </div>
+              <div style={styles.showcaseGrid}>
+                {MYTHIC_SHOWCASE_SPECIES.map((species) => (
+                  <div key={species} style={styles.showcaseCard}>
+                    <img src={getBeastImage(species)} alt={species} style={styles.showcaseImage} />
+                    <div style={styles.showcaseName}>{species}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
             <div style={styles.grid2}>
               <div style={styles.card}>
                 <h3>Thêm quân đoàn</h3>
@@ -4615,58 +4641,94 @@ function launchTerritoryRaid() {
             {activeGuilds.map((guild) => {
               const info = getGuildLevelInfo(guild.exp);
               const members = students.filter((s) => s.guildId === guild.id);
+              const beastMembers = members.filter((s) => s.beast);
+              const rankedMembers = [...beastMembers].sort((a, b) => beastPower(b, guild) - beastPower(a, guild));
+              const showcaseMembers = rankedMembers.slice(0, 9);
+              const viceSlots = getViceCount(members.length);
               return (
-                <div key={guild.id} style={styles.card}>
-                  <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+                <div key={guild.id} style={styles.guildPanel}>
+                  <div style={styles.guildPanelHeader}>
                     <div>
-                      <div style={{ fontSize: 24, fontWeight: 800 }}>{guild.name}</div>
-                      <div>LV {guild.level} · Buff +{guild.buffPercent}% · EXP {guild.exp}</div>
-                      <div>Tiến độ cấp sau: {info.current}/{info.next}</div>
-                      <div>Mốc lv4: {formatDateTime(guild.reachedLevel8At)} · Mốc nở lv6: {formatDateTime(guild.reachedLevel12At)}</div>
-                      <div>Trạng thái trứng: <b>{guild.level >= 6 ? "Đã nở" : guild.level >= 4 ? "Đang ấp / phát sáng" : "Chưa ấp"}</b></div>
-                      <div>Đoàn trưởng: <b>{members.find((s) => s.id === guild.leaderStudentId)?.name || "-"}</b></div>
-                      <div>Đoàn phó: <b>{guild.viceLeaderStudentIds.map((id) => members.find((s) => s.id === id)?.name).filter(Boolean).join(", ") || "-"}</b></div>
-                      <div>Số thành viên: <b>{members.length}</b></div>
-                      <div style={{ marginTop: 12 }}>
-                        <div style={{ fontWeight: 700, marginBottom: 8 }}>Thành viên</div>
-                        <div style={{ display: "grid", gap: 8 }}>
-                          {members.length ? members.map((member) => {
-                            const roleBuff = getRoleBuffPercent(member.id, guild);
-                            const totalBuff = getTotalBuffPercent(member.id, guild);
-                            return (
-                              <div
-                                key={member.id}
-                                style={{
-                                  display: "flex",
-                                  justifyContent: "space-between",
-                                  gap: 12,
-                                  padding: "10px 12px",
-                                  border: "1px solid #e2e8f0",
-                                  borderRadius: 12,
-                                  background: "#f8fafc",
-                                  alignItems: "center",
-                                  flexWrap: "wrap",
-                                }}
-                              >
-                                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                                  {member.avatarUrl ? <img src={member.avatarUrl} alt={member.name} style={styles.avatarSm} /> : <div style={styles.avatarFallbackSm}>{member.name.slice(0, 1)}</div>}
-                                  <div>
-                                    <div style={{ fontWeight: 700 }}>{member.name}</div>
-                                    <div style={{ fontSize: 12, color: "#64748b" }}>{getRoleLabel(member.id, guild)}</div>
-                                  </div>
-                                </div>
-                                <div style={{ fontSize: 13 }}>Buff quân đoàn: <b>+{guild.buffPercent}%</b></div>
-                                <div style={{ fontSize: 13 }}>Buff chức vụ: <b>+{roleBuff}%</b></div>
-                                <div style={{ fontSize: 13 }}>Tổng buff: <b style={{ color: "#2563eb" }}>+{totalBuff}%</b></div>
+                      <div style={styles.guildName}>{guild.name}</div>
+                      <div style={styles.guildMetaLine}>LV {guild.level} · Buff quân đoàn +{guild.buffPercent}% · EXP {guild.exp}</div>
+                      <div style={styles.guildMetaLine}>Tiến độ cấp sau: {info.current}/{info.next}</div>
+                      <div style={styles.guildMetaLine}>Mốc ấp trứng lv4: {formatDateTime(guild.reachedLevel8At)} · Mốc nở thú lv6: {formatDateTime(guild.reachedLevel12At)}</div>
+                    </div>
+                    <button style={styles.dangerBtn} onClick={() => deleteGuild(guild.id)}>Xóa quân đoàn trống</button>
+                  </div>
+
+                  <div style={styles.guildStatsGrid}>
+                    <div style={styles.guildStatCard}><div style={styles.guildStatLabel}>Số thành viên</div><div style={styles.guildStatValue}>{members.length}</div></div>
+                    <div style={styles.guildStatCard}><div style={styles.guildStatLabel}>Số thú đã nở</div><div style={styles.guildStatValue}>{beastMembers.length}</div></div>
+                    <div style={styles.guildStatCard}><div style={styles.guildStatLabel}>Số đoàn phó hiện có</div><div style={styles.guildStatValue}>{guild.viceLeaderStudentIds.length}/{viceSlots}</div></div>
+                    <div style={styles.guildStatCard}><div style={styles.guildStatLabel}>Đếm ngược chốt đoàn trưởng</div><div style={styles.guildStatValueSmall}>{guild.leaderStudentId ? "Đã chốt" : getGuildLeaderCountdownText(guild)}</div></div>
+                  </div>
+
+                  <div style={styles.guildRoleSummary}>
+                    <div><b>Trạng thái trứng:</b> {guild.level >= 6 ? "Đã nở" : guild.level >= 4 ? "Đang ấp / phát sáng" : "Chưa ấp"}</div>
+                    <div><b>Đoàn trưởng:</b> {members.find((s) => s.id === guild.leaderStudentId)?.name || (guild.level >= 6 ? "Đang đếm ngược chốt sau 3 ngày" : "-")}</div>
+                    <div><b>Đoàn phó:</b> {guild.viceLeaderStudentIds.map((id) => members.find((s) => s.id === id)?.name).filter(Boolean).join(", ") || "-"}</div>
+                    <div><b>Luật đoàn phó:</b> đếm theo tổng thành viên, xếp theo lực chiến thú (không tính đoàn trưởng).</div>
+                  </div>
+
+                  <div style={styles.guildSectionTitle}>Top thú của quân đoàn</div>
+                  <div style={styles.guildBeastGrid}>
+                    {showcaseMembers.length ? showcaseMembers.map((member, idx) => {
+                      const roleLabel = getRoleLabel(member.id, guild);
+                      const roleBuff = getRoleBuffPercent(member.id, guild);
+                      const totalBuff = getTotalBuffPercent(member.id, guild);
+                      return (
+                        <div key={member.id} style={styles.guildBeastCard}>
+                          <div style={styles.guildBeastRank}>#{idx + 1}</div>
+                          <img src={getBeastImage(member.beast?.species)} alt={member.beast?.species || member.name} style={styles.guildBeastImage} />
+                          <div style={styles.guildBeastName}>{member.name}</div>
+                          <div style={styles.guildBeastSub}>{member.beast?.species || "Chưa có thú"}</div>
+                          <div style={styles.guildBeastSub}>LC {beastPower(member, guild)} · {roleLabel}</div>
+                          <div style={styles.guildBuffLine}>Buff chức vụ +{roleBuff}% · Tổng buff +{totalBuff}%</div>
+                          <div style={styles.orangeGearRow}>
+                            {SLOTS.map((slot) => (
+                              <div key={`${member.id}-${slot}`} style={styles.orangeGearChip}>
+                                <img src={getItemImage(slot)} alt={slot} style={{ width: 24, height: 24, objectFit: "contain" }} />
                               </div>
-                            );
-                          }) : <span>Chưa có thành viên</span>}
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                    </div>
-                    <div>
-                      <button style={styles.dangerBtn} onClick={() => deleteGuild(guild.id)}>Xóa quân đoàn trống</button>
-                    </div>
+                      );
+                    }) : <div style={styles.emptyGuildBox}>Quân đoàn này chưa có thú để xếp hạng lực chiến.</div>}
+                  </div>
+
+                  <div style={styles.guildSectionTitle}>Danh sách thành viên</div>
+                  <div style={{ overflowX: "auto" }}>
+                    <table style={styles.table}>
+                      <thead>
+                        <tr>
+                          <th style={styles.th}>Avatar</th>
+                          <th style={styles.th}>Họ tên</th>
+                          <th style={styles.th}>Lớp</th>
+                          <th style={styles.th}>Chức vụ</th>
+                          <th style={styles.th}>Lực chiến thú</th>
+                          <th style={styles.th}>Buff chức vụ</th>
+                          <th style={styles.th}>Tổng buff</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {members.length ? [...members].sort((a, b) => {
+                          const ap = a.beast ? beastPower(a, guild) : -1;
+                          const bp = b.beast ? beastPower(b, guild) : -1;
+                          return bp - ap || a.name.localeCompare(b.name);
+                        }).map((member) => (
+                          <tr key={member.id}>
+                            <td style={styles.td}>{member.avatarUrl ? <img src={member.avatarUrl} alt={member.name} style={styles.avatarSm} /> : <div style={styles.avatarFallbackSm}>{member.name.slice(0, 1)}</div>}</td>
+                            <td style={styles.td}>{member.name}</td>
+                            <td style={styles.td}>{member.className}</td>
+                            <td style={styles.td}>{getRoleLabel(member.id, guild)}</td>
+                            <td style={styles.td}>{member.beast ? beastPower(member, guild) : "-"}</td>
+                            <td style={styles.td}>+{getRoleBuffPercent(member.id, guild)}%</td>
+                            <td style={styles.td}>+{getTotalBuffPercent(member.id, guild)}%</td>
+                          </tr>
+                        )) : <tr><td style={styles.td} colSpan={7}>Chưa có thành viên</td></tr>}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
               );
@@ -5677,109 +5739,11 @@ Hình: https://...`}
         )}
 
         {tab === "settings" && (
-          <div style={{ display: "grid", gap: 16 }}>
-            <div style={styles.card}>
-              <h3>Đổi mật khẩu Admin</h3>
-              <input style={styles.input} type="password" value={oldPass} onChange={(e) => setOldPass(e.target.value)} placeholder="Mật khẩu cũ" />
-              <input style={styles.input} type="password" value={newPass} onChange={(e) => setNewPass(e.target.value)} placeholder="Mật khẩu mới" />
-              <button style={styles.primaryBtn} onClick={changeAdminPassword}>Đổi mật khẩu</button>
-            </div>
-
-            <div style={styles.card}>
-              <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
-                <div>
-                  <h3 style={{ marginBottom: 6 }}>Quản lý mật khẩu học sinh</h3>
-                  <div style={{ fontSize: 13, color: "#64748b" }}>
-                    Mật khẩu học sinh được quản lý riêng trong tab Cài đặt để tránh lộ khi quản lý thành viên.
-                  </div>
-                </div>
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  <button style={styles.secondaryBtn} onClick={() => setShowStudentPasswords((prev) => !prev)}>
-                    {showStudentPasswords ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
-                  </button>
-                  <button
-                    style={styles.secondaryBtn}
-                    onClick={() => {
-                      const targetClass = passwordManagerClassFilter;
-                      const targetStudents = students.filter((student) => targetClass === "Tất cả" || student.className === targetClass);
-                      if (!targetStudents.length) return alert("Không có học sinh nào trong bộ lọc hiện tại.");
-                      if (!confirm(`Đặt lại mật khẩu của ${targetStudents.length} học sinh về 123456?`)) return;
-                      setStudents((prev) => prev.map((student) => targetClass === "Tất cả" || student.className === targetClass ? { ...student, password: "123456" } : student));
-                      addLog("student_password_reset", `Đã đặt lại mật khẩu ${targetStudents.length} học sinh${targetClass === "Tất cả" ? "" : ` lớp ${targetClass}`} về 123456.`);
-                    }}
-                  >
-                    Đặt lại về 123456
-                  </button>
-                </div>
-              </div>
-
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 12, marginTop: 14, marginBottom: 12 }}>
-                <select style={{ ...styles.input, margin: 0 }} value={passwordManagerClassFilter} onChange={(e) => setPasswordManagerClassFilter(e.target.value)}>
-                  <option value="Tất cả">Tất cả lớp</option>
-                  {classOptions.map((cls) => <option key={`pwd-class-${cls}`} value={cls}>{cls}</option>)}
-                </select>
-                <input
-                  style={{ ...styles.input, margin: 0 }}
-                  value={passwordManagerSearch}
-                  onChange={(e) => setPasswordManagerSearch(e.target.value)}
-                  placeholder="Tìm theo tên hoặc tài khoản"
-                />
-              </div>
-
-              <div style={{ fontSize: 13, color: "#64748b", marginBottom: 10 }}>
-                Đang hiển thị <b>{passwordManagerStudents.length}</b> học sinh.
-              </div>
-
-              <div style={{ overflowX: "auto" }}>
-                <table style={styles.table}>
-                  <thead>
-                    <tr>
-                      <th style={styles.th}>Họ tên</th>
-                      <th style={styles.th}>Tài khoản</th>
-                      <th style={styles.th}>Lớp</th>
-                      <th style={styles.th}>Quân đoàn</th>
-                      <th style={styles.th}>Mật khẩu</th>
-                      <th style={styles.th}>Tác vụ</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {passwordManagerStudents.map((student) => {
-                      const guild = guildById.get(student.guildId);
-                      return (
-                        <tr key={`password-row-${student.id}`}>
-                          <td style={styles.td}>{student.name}</td>
-                          <td style={styles.td}>{student.username}</td>
-                          <td style={styles.td}>{student.className}</td>
-                          <td style={styles.td}>{guild?.name || "-"}</td>
-                          <td style={styles.td}>
-                            <input
-                              style={{ ...styles.input, minWidth: 180, margin: 0 }}
-                              type={showStudentPasswords ? "text" : "password"}
-                              value={student.password}
-                              onChange={(e) => setStudents((prev) => prev.map((item) => item.id === student.id ? { ...item, password: e.target.value } : item))}
-                              placeholder="Nhập mật khẩu"
-                            />
-                          </td>
-                          <td style={styles.td}>
-                            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                              <button
-                                style={styles.secondaryBtn}
-                                onClick={() => {
-                                  setStudents((prev) => prev.map((item) => item.id === student.id ? { ...item, password: "123456" } : item));
-                                  addLog("student_password_reset_one", `Đã đặt lại mật khẩu của ${student.name} về 123456.`);
-                                }}
-                              >
-                                Reset 123456
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+          <div style={styles.card}>
+            <h3>Đổi mật khẩu Admin</h3>
+            <input style={styles.input} type="password" value={oldPass} onChange={(e) => setOldPass(e.target.value)} placeholder="Mật khẩu cũ" />
+            <input style={styles.input} type="password" value={newPass} onChange={(e) => setNewPass(e.target.value)} placeholder="Mật khẩu mới" />
+            <button style={styles.primaryBtn} onClick={changeAdminPassword}>Đổi mật khẩu</button>
           </div>
         )}
       </div>
@@ -5886,4 +5850,33 @@ const styles: Record<string, React.CSSProperties> = {
   hatchBurstSparkRight: { position: "absolute", right: -8, top: "36%", fontSize: 24, animation: "hatchSparkle 1.6s ease-out 0.35s infinite", pointerEvents: "none" },
   hatchBurstSparkTop: { position: "absolute", top: -16, left: "50%", marginLeft: -12, fontSize: 24, animation: "hatchSparkle 1.6s ease-out 0.15s infinite", pointerEvents: "none" },
   hatchCelebrationText: { marginTop: 10, textAlign: "center", padding: "10px 12px", borderRadius: 14, background: "linear-gradient(135deg, rgba(254,240,138,0.4), rgba(253,186,116,0.3))", color: "#9a3412", fontSize: 13, fontWeight: 800, border: "1px solid rgba(245,158,11,0.28)" },
+  guildHeroCard: { borderRadius: 28, padding: 22, background: "linear-gradient(135deg, #0f172a 0%, #1d4ed8 45%, #f97316 100%)", color: "#fff", boxShadow: "0 20px 50px rgba(15,23,42,0.22)", display: "grid", gap: 18 },
+  guildHeroBadge: { display: "inline-block", padding: "6px 12px", borderRadius: 999, background: "rgba(255,255,255,0.16)", fontSize: 12, fontWeight: 800, marginBottom: 10 },
+  guildHeroTitle: { fontSize: 28, fontWeight: 900, marginBottom: 8 },
+  guildHeroText: { fontSize: 14, lineHeight: 1.7, color: "rgba(255,255,255,0.9)" },
+  showcaseGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(110px, 1fr))", gap: 12 },
+  showcaseCard: { background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.18)", borderRadius: 20, padding: 10, textAlign: "center", backdropFilter: "blur(8px)" },
+  showcaseImage: { width: "100%", height: 78, objectFit: "contain", filter: "drop-shadow(0 8px 12px rgba(0,0,0,0.28))" },
+  showcaseName: { marginTop: 6, fontSize: 12, fontWeight: 700 },
+  guildPanel: { borderRadius: 26, padding: 22, background: "linear-gradient(180deg, #ffffff 0%, #fff7ed 100%)", border: "1px solid #fed7aa", boxShadow: "0 14px 40px rgba(249,115,22,0.12)", display: "grid", gap: 16 },
+  guildPanelHeader: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, flexWrap: "wrap" },
+  guildName: { fontSize: 28, fontWeight: 900, color: "#7c2d12" },
+  guildMetaLine: { fontSize: 14, color: "#7c2d12", marginTop: 4 },
+  guildStatsGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12 },
+  guildStatCard: { borderRadius: 18, padding: 14, background: "#ffffff", border: "1px solid #fed7aa", boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.6)" },
+  guildStatLabel: { fontSize: 12, fontWeight: 700, color: "#9a3412", textTransform: "uppercase", letterSpacing: 0.4 },
+  guildStatValue: { fontSize: 28, fontWeight: 900, color: "#ea580c", marginTop: 6 },
+  guildStatValueSmall: { fontSize: 16, fontWeight: 800, color: "#ea580c", marginTop: 8, lineHeight: 1.4 },
+  guildRoleSummary: { borderRadius: 18, padding: 14, background: "rgba(255,255,255,0.85)", border: "1px solid #fed7aa", display: "grid", gap: 8, color: "#7c2d12" },
+  guildSectionTitle: { fontSize: 18, fontWeight: 900, color: "#9a3412", marginTop: 4 },
+  guildBeastGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 14 },
+  guildBeastCard: { borderRadius: 22, padding: 14, background: "linear-gradient(180deg, #1f2937 0%, #111827 100%)", color: "#fff", position: "relative", overflow: "hidden", boxShadow: "0 18px 38px rgba(15,23,42,0.28)", border: "1px solid rgba(251,146,60,0.5)", textAlign: "center" },
+  guildBeastRank: { position: "absolute", top: 10, left: 10, borderRadius: 999, padding: "4px 9px", background: "linear-gradient(135deg, #f59e0b, #f97316)", fontSize: 12, fontWeight: 900 },
+  guildBeastImage: { width: "100%", height: 110, objectFit: "contain", marginTop: 8, filter: "drop-shadow(0 10px 14px rgba(249,115,22,0.35))" },
+  guildBeastName: { marginTop: 8, fontSize: 18, fontWeight: 800 },
+  guildBeastSub: { fontSize: 13, color: "#cbd5e1", marginTop: 4 },
+  guildBuffLine: { marginTop: 8, fontSize: 12, color: "#fdba74", fontWeight: 700 },
+  orangeGearRow: { marginTop: 12, display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8 },
+  orangeGearChip: { borderRadius: 14, padding: 8, background: "linear-gradient(180deg, #ffedd5, #fdba74)", border: "1px solid #fb923c", boxShadow: "0 8px 14px rgba(249,115,22,0.22)", display: "flex", alignItems: "center", justifyContent: "center" },
+  emptyGuildBox: { borderRadius: 18, padding: 18, background: "#ffffff", border: "1px dashed #fdba74", color: "#9a3412" },
 };
