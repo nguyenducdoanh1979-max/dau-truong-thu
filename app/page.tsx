@@ -293,19 +293,19 @@ const LOGIN_FORMULA_CARDS = [
     note: "Áp dụng cho tam giác vuông, trong đó c là cạnh huyền.",
   },
   {
-    title: "Tổng ba góc tam giác",
-    formula: "A + B + C = 180°",
-    note: "Mọi tam giác đều có tổng ba góc bằng 180 độ.",
+    title: "Tổng ba góc trong tam giác",
+    formula: "∠A + ∠B + ∠C = 180°",
+    note: "Ba góc trong của mọi tam giác luôn có tổng bằng 180 độ.",
   },
   {
     title: "Diện tích tam giác",
-    formula: "S = a × h : 2",
-    note: "Lấy đáy nhân chiều cao rồi chia 2.",
+    formula: "S = (a × h) / 2",
+    note: "Lấy đáy nhân chiều cao tương ứng rồi chia 2.",
   },
   {
     title: "Chu vi đường tròn",
-    formula: "C = 2πR",
-    note: "R là bán kính đường tròn.",
+    formula: "C = 2πR = πd",
+    note: "Có thể dùng bán kính R hoặc đường kính d.",
   },
   {
     title: "Diện tích hình tròn",
@@ -314,9 +314,23 @@ const LOGIN_FORMULA_CARDS = [
   },
   {
     title: "Trung bình cộng",
-    formula: "TB = (x₁ + x₂ + ... + xₙ) / n",
+    formula: "x̄ = (x₁ + x₂ + ... + xₙ) / n",
     note: "Rất hay gặp trong bài toán thống kê cơ bản.",
   },
+  {
+    title: "Hệ thức lượng trong tam giác vuông",
+    formula: "h² = p × q",
+    note: "h là đường cao ứng với cạnh huyền; p, q là hai hình chiếu.",
+  },
+] as const;
+
+const LOGIN_SCIENTIST_CARDS = [
+  { name: "Pythagoras", field: "Toán học", badge: "Δ", color: "#1d4ed8" },
+  { name: "Euclid", field: "Hình học", badge: "∥", color: "#0f766e" },
+  { name: "Isaac Newton", field: "Vật lý", badge: "F", color: "#b45309" },
+  { name: "Albert Einstein", field: "Vật lý", badge: "E", color: "#7c3aed" },
+  { name: "Thales", field: "Hình học", badge: "∠", color: "#0f766e" },
+  { name: "Archimedes", field: "Toán học", badge: "π", color: "#dc2626" },
 ] as const;
 
 const LOGIN_BEAST_SHOWCASE = [
@@ -1824,17 +1838,73 @@ export default function Page() {
               <div style={styles.loginHeroText}>{modeText}</div>
               <div style={styles.loginChipRow}>
                 <span style={styles.loginChip}>📘 Toán học cấp 2</span>
-                <span style={styles.loginChip}>🐉 Thú sử thi</span>
-                <span style={styles.loginChip}>🟠 Trang bị cam</span>
+                <span style={styles.loginChip}>📐 Hình học trực quan</span>
+                <span style={styles.loginChip}>🧠 Danh nhân khoa học</span>
               </div>
             </div>
 
-            <div style={styles.loginFormulaCard}>
-              <div style={styles.loginSectionLabel}>Công thức hôm nay</div>
-              <div style={styles.loginFormulaTitle}>{loginShowcase.formula.title}</div>
-              <div style={styles.loginFormulaValue}>{loginShowcase.formula.formula}</div>
-              <div style={styles.loginFormulaNote}>{loginShowcase.formula.note}</div>
+            <div style={styles.loginGalleryCard}>
+              <div style={styles.loginSectionLabel}>Bảng học nhanh</div>
+              <div style={styles.loginFigureGrid}>
+                <div style={styles.loginFigureTile}>
+                  <svg viewBox="0 0 120 90" style={styles.loginFigureSvg}>
+                    <line x1="16" y1="72" x2="104" y2="72" stroke="#0f172a" strokeWidth="3" />
+                    <line x1="16" y1="72" x2="58" y2="18" stroke="#2563eb" strokeWidth="3" />
+                    <line x1="104" y1="72" x2="58" y2="18" stroke="#f97316" strokeWidth="3" />
+                    <text x="12" y="84" fontSize="12" fill="#0f172a">A</text>
+                    <text x="54" y="14" fontSize="12" fill="#0f172a">B</text>
+                    <text x="106" y="84" fontSize="12" fill="#0f172a">C</text>
+                    <path d="M28 72 A14 14 0 0 1 38 58" fill="none" stroke="#ef4444" strokeWidth="2" />
+                  </svg>
+                  <div style={styles.loginFigureCaption}>Tổng góc tam giác</div>
+                </div>
+                <div style={styles.loginFigureTile}>
+                  <svg viewBox="0 0 120 90" style={styles.loginFigureSvg}>
+                    <line x1="12" y1="28" x2="108" y2="28" stroke="#2563eb" strokeWidth="3" />
+                    <line x1="12" y1="64" x2="108" y2="64" stroke="#2563eb" strokeWidth="3" />
+                    <line x1="34" y1="12" x2="78" y2="80" stroke="#0f172a" strokeWidth="3" />
+                    <path d="M42 28 A10 10 0 0 1 50 38" fill="none" stroke="#f97316" strokeWidth="2" />
+                    <path d="M62 54 A10 10 0 0 1 70 64" fill="none" stroke="#f97316" strokeWidth="2" />
+                  </svg>
+                  <div style={styles.loginFigureCaption}>So le trong</div>
+                </div>
+                <div style={styles.loginFigureTile}>
+                  <svg viewBox="0 0 120 90" style={styles.loginFigureSvg}>
+                    <circle cx="60" cy="45" r="26" fill="none" stroke="#0f766e" strokeWidth="3" />
+                    <line x1="34" y1="45" x2="86" y2="45" stroke="#0f172a" strokeWidth="3" />
+                    <line x1="60" y1="45" x2="84" y2="30" stroke="#f97316" strokeWidth="3" />
+                    <text x="56" y="42" fontSize="11" fill="#0f172a">O</text>
+                    <text x="87" y="28" fontSize="11" fill="#0f172a">A</text>
+                  </svg>
+                  <div style={styles.loginFigureCaption}>Bán kính - đường kính</div>
+                </div>
+                <div style={styles.loginFigureTile}>
+                  <svg viewBox="0 0 120 90" style={styles.loginFigureSvg}>
+                    <line x1="18" y1="72" x2="96" y2="72" stroke="#0f172a" strokeWidth="3" />
+                    <line x1="18" y1="72" x2="18" y2="24" stroke="#2563eb" strokeWidth="3" />
+                    <line x1="18" y1="24" x2="96" y2="72" stroke="#f97316" strokeWidth="3" />
+                    <rect x="18" y="62" width="10" height="10" fill="none" stroke="#ef4444" strokeWidth="2" />
+                    <text x="54" y="22" fontSize="11" fill="#0f172a">c</text>
+                  </svg>
+                  <div style={styles.loginFigureCaption}>Tam giác vuông</div>
+                </div>
+              </div>
               <div style={styles.loginFactLine}>📐 {loginShowcase.fact}</div>
+            </div>
+
+            <div style={styles.loginScientistsCard}>
+              <div style={styles.loginSectionLabel}>Danh nhân toán - lý</div>
+              <div style={styles.loginScientistsGrid}>
+                {LOGIN_SCIENTIST_CARDS.map((scientist) => (
+                  <div key={scientist.name} style={styles.loginScientistTile}>
+                    <div style={{ ...styles.loginScientistAvatar, background: `linear-gradient(135deg, ${scientist.color}, #0f172a)` }}>{scientist.badge}</div>
+                    <div>
+                      <div style={styles.loginScientistName}>{scientist.name}</div>
+                      <div style={styles.loginScientistField}>{scientist.field}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -5948,30 +6018,41 @@ Hình: https://...`}
 
 const styles: Record<string, React.CSSProperties> = {
   loginBg: { minHeight: "100vh", display: "flex", justifyContent: "center", alignItems: "center", background: "radial-gradient(circle at top left, rgba(37,99,235,0.28), transparent 26%), radial-gradient(circle at bottom right, rgba(251,146,60,0.16), transparent 24%), linear-gradient(135deg, #0f172a, #2563eb)", padding: 24, overflow: "hidden" },
-  loginSceneWrap: { width: "min(1480px, 100%)", display: "grid", gridTemplateColumns: "minmax(280px, 1fr) minmax(420px, 520px) minmax(280px, 1fr)", gap: 24, alignItems: "stretch", position: "relative" },
-  loginSideColumn: { display: "grid", gap: 18, alignContent: "center", position: "relative", zIndex: 1 },
-  loginCenterColumn: { display: "flex", justifyContent: "center", alignItems: "center", position: "relative", zIndex: 2 },
+  loginSceneWrap: { width: "min(1520px, 100%)", display: "grid", gridTemplateColumns: "minmax(250px, 0.88fr) minmax(460px, 640px) minmax(250px, 0.88fr)", gap: 20, alignItems: "center", position: "relative" },
+  loginSideColumn: { display: "grid", gap: 14, alignContent: "center", position: "relative", zIndex: 1 },
+  loginCenterColumn: { display: "flex", justifyContent: "center", alignItems: "center", position: "relative", zIndex: 2, minHeight: 640 },
   loginAura: { position: "absolute", width: 240, height: 240, borderRadius: "50%", filter: "blur(38px)", pointerEvents: "none" },
   loginCard: { width: 460, maxWidth: "100%", background: "rgba(255,255,255,0.95)", backdropFilter: "blur(12px)", borderRadius: 24, padding: 28, boxShadow: "0 24px 48px rgba(0,0,0,0.22)", display: "grid", gap: 12, border: "1px solid rgba(255,255,255,0.5)" },
-  loginHeroCard: { background: "linear-gradient(135deg, rgba(15,23,42,0.84), rgba(30,64,175,0.82))", color: "#fff", borderRadius: 26, padding: 24, boxShadow: "0 18px 44px rgba(15,23,42,0.26)", border: "1px solid rgba(255,255,255,0.14)" },
+  loginHeroCard: { background: "linear-gradient(135deg, rgba(15,23,42,0.88), rgba(30,64,175,0.84))", color: "#fff", borderRadius: 22, padding: 18, boxShadow: "0 14px 34px rgba(15,23,42,0.22)", border: "1px solid rgba(255,255,255,0.14)" },
   loginHeroBadge: { display: "inline-flex", alignItems: "center", padding: "6px 12px", borderRadius: 999, fontSize: 12, fontWeight: 800, letterSpacing: 0.3, background: "rgba(255,255,255,0.16)", border: "1px solid rgba(255,255,255,0.16)" },
-  loginHeroTitle: { fontSize: 38, lineHeight: 1.08, fontWeight: 900, marginTop: 18, textShadow: "0 4px 24px rgba(0,0,0,0.24)" },
-  loginHeroText: { marginTop: 12, color: "rgba(255,255,255,0.84)", fontSize: 16, lineHeight: 1.6 },
-  loginChipRow: { display: "flex", flexWrap: "wrap", gap: 10, marginTop: 18 },
-  loginChip: { display: "inline-flex", alignItems: "center", padding: "8px 12px", borderRadius: 999, background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.15)", color: "#fff", fontSize: 13, fontWeight: 700 },
-  loginFormulaCard: { background: "rgba(255,255,255,0.95)", borderRadius: 22, padding: 22, boxShadow: "0 18px 40px rgba(15,23,42,0.14)", border: "1px solid rgba(255,255,255,0.42)" },
+  loginHeroTitle: { fontSize: 30, lineHeight: 1.08, fontWeight: 900, marginTop: 14, textShadow: "0 4px 24px rgba(0,0,0,0.24)" },
+  loginHeroText: { marginTop: 10, color: "rgba(255,255,255,0.84)", fontSize: 14, lineHeight: 1.55 },
+  loginChipRow: { display: "flex", flexWrap: "wrap", gap: 8, marginTop: 14 },
+  loginChip: { display: "inline-flex", alignItems: "center", padding: "7px 10px", borderRadius: 999, background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.15)", color: "#fff", fontSize: 12, fontWeight: 700 },
+  loginFormulaCard: { background: "rgba(255,255,255,0.95)", borderRadius: 20, padding: 18, boxShadow: "0 14px 30px rgba(15,23,42,0.12)", border: "1px solid rgba(255,255,255,0.42)" },
   loginSectionLabel: { display: "inline-flex", alignItems: "center", padding: "5px 10px", borderRadius: 999, background: "#dbeafe", color: "#1d4ed8", fontSize: 12, fontWeight: 800, marginBottom: 12 },
   loginFormulaTitle: { fontSize: 16, fontWeight: 800, color: "#0f172a" },
-  loginFormulaValue: { fontSize: 28, fontWeight: 900, color: "#1d4ed8", marginTop: 8, letterSpacing: 0.4 },
+  loginFormulaValue: { fontSize: 24, fontWeight: 900, color: "#1d4ed8", marginTop: 8, letterSpacing: 0.2 },
   loginFormulaNote: { marginTop: 8, fontSize: 14, color: "#475569", lineHeight: 1.6 },
   loginFactLine: { marginTop: 14, paddingTop: 12, borderTop: "1px dashed #cbd5e1", fontSize: 14, color: "#0f172a", fontWeight: 600 },
-  loginCreatureCard: { background: "linear-gradient(180deg, rgba(255,255,255,0.96), rgba(248,250,252,0.92))", borderRadius: 26, padding: 22, boxShadow: "0 18px 40px rgba(15,23,42,0.16)", border: "1px solid rgba(255,255,255,0.46)" },
-  loginCreatureImageWrap: { height: 230, borderRadius: 24, background: "radial-gradient(circle at center, rgba(37,99,235,0.12), rgba(15,23,42,0.02))", display: "flex", alignItems: "center", justifyContent: "center", border: "1px solid #dbeafe" },
+  loginCreatureCard: { background: "linear-gradient(180deg, rgba(255,255,255,0.96), rgba(248,250,252,0.92))", borderRadius: 22, padding: 18, boxShadow: "0 14px 30px rgba(15,23,42,0.14)", border: "1px solid rgba(255,255,255,0.46)" },
+  loginCreatureImageWrap: { height: 180, borderRadius: 20, background: "radial-gradient(circle at center, rgba(37,99,235,0.12), rgba(15,23,42,0.02))", display: "flex", alignItems: "center", justifyContent: "center", border: "1px solid #dbeafe" },
   loginCreatureImage: { width: "88%", height: "88%", objectFit: "contain", filter: "drop-shadow(0 12px 24px rgba(15,23,42,0.18))" },
   loginCreatureName: { fontSize: 20, fontWeight: 900, color: "#0f172a", marginTop: 14 },
   loginCreatureMeta: { fontSize: 13, color: "#1d4ed8", fontWeight: 800, marginTop: 6 },
   loginCreatureLore: { fontSize: 14, color: "#475569", lineHeight: 1.6, marginTop: 10 },
-  loginItemCard: { background: "linear-gradient(135deg, rgba(255,247,237,0.98), rgba(255,255,255,0.96))", borderRadius: 24, padding: 22, boxShadow: "0 18px 40px rgba(249,115,22,0.14)", border: "1px solid rgba(251,146,60,0.24)" },
+  loginItemCard: { background: "linear-gradient(135deg, rgba(255,247,237,0.98), rgba(255,255,255,0.96))", borderRadius: 22, padding: 18, boxShadow: "0 14px 30px rgba(249,115,22,0.14)", border: "1px solid rgba(251,146,60,0.24)" },
+  loginGalleryCard: { background: "rgba(255,255,255,0.96)", borderRadius: 22, padding: 18, boxShadow: "0 14px 30px rgba(15,23,42,0.12)", border: "1px solid rgba(255,255,255,0.42)" },
+  loginFigureGrid: { display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10 },
+  loginFigureTile: { borderRadius: 16, background: "linear-gradient(180deg, #ffffff, #eff6ff)", border: "1px solid #dbeafe", padding: 10, display: "grid", gap: 6 },
+  loginFigureSvg: { width: "100%", height: 86, display: "block" },
+  loginFigureCaption: { fontSize: 12, fontWeight: 800, color: "#1e3a8a", textAlign: "center" },
+  loginScientistsCard: { background: "linear-gradient(180deg, rgba(255,255,255,0.96), rgba(248,250,252,0.96))", borderRadius: 22, padding: 18, boxShadow: "0 14px 30px rgba(15,23,42,0.12)", border: "1px solid rgba(255,255,255,0.42)" },
+  loginScientistsGrid: { display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10 },
+  loginScientistTile: { display: "flex", alignItems: "center", gap: 10, borderRadius: 16, padding: 10, background: "linear-gradient(180deg, #ffffff, #f8fafc)", border: "1px solid #e2e8f0" },
+  loginScientistAvatar: { width: 42, height: 42, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 18, fontWeight: 900, flexShrink: 0, boxShadow: "0 10px 18px rgba(15,23,42,0.18)" },
+  loginScientistName: { fontSize: 13, fontWeight: 900, color: "#0f172a" },
+  loginScientistField: { fontSize: 11, color: "#475569", marginTop: 2 },
   loginItemTop: { display: "flex", gap: 14, alignItems: "center" },
   loginItemImageWrap: { width: 72, height: 72, borderRadius: 18, background: "linear-gradient(135deg, rgba(251,146,60,0.22), rgba(250,204,21,0.14))", display: "flex", alignItems: "center", justifyContent: "center", border: "1px solid rgba(251,146,60,0.28)" },
   loginItemImage: { width: 52, height: 52, objectFit: "contain" },
