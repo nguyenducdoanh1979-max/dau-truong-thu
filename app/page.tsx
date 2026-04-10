@@ -871,8 +871,8 @@ function beastPower(student: Student, guild: Guild) {
   const st = beastStats(student);
   if (!st || !student.beast) return 0;
   const raw = st.atk * 2 + st.def * 1.8 + st.hp * 0.5 + st.spd * 2.2 + student.beast.quality * 3 + student.beast.level * 10;
-  const roleBuffPercent = getRoleBuffPercent(student.id, guild);
-  const totalPercentBuff = getTotalBuffPercent(student.id, guild);
+  const roleBuffPercent = guild.leaderStudentId === student.id ? 5 : guild.viceLeaderStudentIds.includes(student.id) ? 2 : 0;
+  const totalPercentBuff = guild.buffPercent + roleBuffPercent;
   const totalStatBuff = 1 + totalPercentBuff / 100;
   const weaponDamageBuff = 1 + (st.damagePercent || 0) / 100;
   return Math.round(raw * totalStatBuff * weaponDamageBuff);
@@ -1579,6 +1579,9 @@ export default function Page() {
   const [newPass, setNewPass] = useState("");
   const [resetPasswordInput, setResetPasswordInput] = useState("");
   const [showResetBox, setShowResetBox] = useState(false);
+  const [passwordManagerClassFilter, setPasswordManagerClassFilter] = useState("Tất cả");
+  const [passwordManagerSearch, setPasswordManagerSearch] = useState("");
+  const [showStudentPasswords, setShowStudentPasswords] = useState(false);
   const [qQuestion, setQQuestion] = useState("");
   const [qA, setQA] = useState("");
   const [qB, setQB] = useState("");
@@ -1850,6 +1853,24 @@ export default function Page() {
     () => Array.from(new Set([...DEFAULT_CLASS_SUGGESTIONS, ...students.map((s) => s.className).filter(Boolean), ...questions.map((q) => q.className).filter(Boolean), assignmentClassName, memberClassName, qClassName])).sort(),
     [students, questions, assignmentClassName, memberClassName, qClassName]
   );
+  const passwordManagerStudents = useMemo(() => {
+    const keyword = passwordManagerSearch.trim().toLowerCase();
+    return students
+      .filter((student) => {
+        if (passwordManagerClassFilter !== "Tất cả" && student.className !== passwordManagerClassFilter) return false;
+        if (!keyword) return true;
+        return [student.name, student.username, student.className, guildById.get(student.guildId)?.name || ""]
+          .join(" ")
+          .toLowerCase()
+          .includes(keyword);
+      })
+      .sort((a, b) =>
+        a.className.localeCompare(b.className) ||
+        (guildById.get(a.guildId)?.name || "").localeCompare(guildById.get(b.guildId)?.name || "") ||
+        a.name.localeCompare(b.name)
+      );
+  }, [students, passwordManagerClassFilter, passwordManagerSearch, guildById]);
+
   const questionGroupOptions = useMemo(() => {
   const groups = [
     ...DEFAULT_GROUP_SUGGESTIONS,
@@ -4317,7 +4338,7 @@ function launchTerritoryRaid() {
             </div>
             <div style={styles.card}>
               <h3>Danh sách thành viên trong quân đoàn đã chọn</h3>
-              <div style={{ fontSize: 13, color: "#64748b", marginBottom: 10 }}>Tab này chỉ quản lý thông tin thành viên. Mật khẩu đã chuyển sang khu quản lý riêng. Phần cộng/trừ điểm đã chuyển sang tab "Điểm học sinh".</div>
+              <div style={{ fontSize: 13, color: "#64748b", marginBottom: 10 }}>Tab này chỉ quản lý thông tin thành viên. Mật khẩu đã chuyển sang tab "Cài đặt". Phần cộng/trừ điểm đã chuyển sang tab "Điểm học sinh".</div>
               <div style={{ overflowX: "auto" }}>
                 <table style={styles.table}>
                   <thead>
@@ -4335,7 +4356,7 @@ function launchTerritoryRaid() {
                   </thead>
                   <tbody>
                     {selectedGuildStudents.map((s) => {
-                      const guild = guildById.get(s.guildId);
+                      const guild = guildById.get(s.guildId) || null;
                       return (
                         <tr key={`row-${s.id}`}>
                           <td style={styles.td}>{s.avatarUrl ? <img src={s.avatarUrl} alt={s.name} style={styles.avatarSm} /> : <div style={styles.avatarFallbackSm}>{s.name.slice(0, 1)}</div>}</td>
@@ -4355,49 +4376,6 @@ function launchTerritoryRaid() {
                         </tr>
                       );
                     })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-            <div style={styles.card}>
-              <h3>Quản lý mật khẩu học sinh</h3>
-              <div style={{ fontSize: 13, color: "#64748b", marginBottom: 10 }}>Mật khẩu được quản lý riêng, không hiện trong bảng thành viên quân đoàn.</div>
-              <div style={{ overflowX: "auto" }}>
-                <table style={styles.table}>
-                  <thead>
-                    <tr>
-                      <th style={styles.th}>Họ tên</th>
-                      <th style={styles.th}>Tài khoản</th>
-                      <th style={styles.th}>Lớp</th>
-                      <th style={styles.th}>Quân đoàn</th>
-                      <th style={styles.th}>Mật khẩu</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {selectedGuildStudents.map((s) => (
-                      <tr key={`password-row-${s.id}`}>
-                        <td style={styles.td}>{s.name}</td>
-                        <td style={styles.td}>{s.username}</td>
-                        <td style={styles.td}>{s.className}</td>
-                        <td style={styles.td}>{guildById.get(s.guildId)?.name || "-"}</td>
-                        <td style={styles.td}>
-                          <input
-                            style={{ ...styles.input, minWidth: 140, margin: 0 }}
-                            value={s.password}
-                            onChange={(e) =>
-                              setStudents((prev) =>
-                                prev.map((student) =>
-                                  student.id === s.id
-                                    ? { ...student, password: e.target.value }
-                                    : student
-                                )
-                              )
-                            }
-                            placeholder="Nhập mật khẩu"
-                          />
-                        </td>
-                      </tr>
-                    ))}
                   </tbody>
                 </table>
               </div>
@@ -5699,11 +5677,109 @@ Hình: https://...`}
         )}
 
         {tab === "settings" && (
-          <div style={styles.card}>
-            <h3>Đổi mật khẩu Admin</h3>
-            <input style={styles.input} type="password" value={oldPass} onChange={(e) => setOldPass(e.target.value)} placeholder="Mật khẩu cũ" />
-            <input style={styles.input} type="password" value={newPass} onChange={(e) => setNewPass(e.target.value)} placeholder="Mật khẩu mới" />
-            <button style={styles.primaryBtn} onClick={changeAdminPassword}>Đổi mật khẩu</button>
+          <div style={{ display: "grid", gap: 16 }}>
+            <div style={styles.card}>
+              <h3>Đổi mật khẩu Admin</h3>
+              <input style={styles.input} type="password" value={oldPass} onChange={(e) => setOldPass(e.target.value)} placeholder="Mật khẩu cũ" />
+              <input style={styles.input} type="password" value={newPass} onChange={(e) => setNewPass(e.target.value)} placeholder="Mật khẩu mới" />
+              <button style={styles.primaryBtn} onClick={changeAdminPassword}>Đổi mật khẩu</button>
+            </div>
+
+            <div style={styles.card}>
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
+                <div>
+                  <h3 style={{ marginBottom: 6 }}>Quản lý mật khẩu học sinh</h3>
+                  <div style={{ fontSize: 13, color: "#64748b" }}>
+                    Mật khẩu học sinh được quản lý riêng trong tab Cài đặt để tránh lộ khi quản lý thành viên.
+                  </div>
+                </div>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  <button style={styles.secondaryBtn} onClick={() => setShowStudentPasswords((prev) => !prev)}>
+                    {showStudentPasswords ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+                  </button>
+                  <button
+                    style={styles.secondaryBtn}
+                    onClick={() => {
+                      const targetClass = passwordManagerClassFilter;
+                      const targetStudents = students.filter((student) => targetClass === "Tất cả" || student.className === targetClass);
+                      if (!targetStudents.length) return alert("Không có học sinh nào trong bộ lọc hiện tại.");
+                      if (!confirm(`Đặt lại mật khẩu của ${targetStudents.length} học sinh về 123456?`)) return;
+                      setStudents((prev) => prev.map((student) => targetClass === "Tất cả" || student.className === targetClass ? { ...student, password: "123456" } : student));
+                      addLog("student_password_reset", `Đã đặt lại mật khẩu ${targetStudents.length} học sinh${targetClass === "Tất cả" ? "" : ` lớp ${targetClass}`} về 123456.`);
+                    }}
+                  >
+                    Đặt lại về 123456
+                  </button>
+                </div>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 12, marginTop: 14, marginBottom: 12 }}>
+                <select style={{ ...styles.input, margin: 0 }} value={passwordManagerClassFilter} onChange={(e) => setPasswordManagerClassFilter(e.target.value)}>
+                  <option value="Tất cả">Tất cả lớp</option>
+                  {classOptions.map((cls) => <option key={`pwd-class-${cls}`} value={cls}>{cls}</option>)}
+                </select>
+                <input
+                  style={{ ...styles.input, margin: 0 }}
+                  value={passwordManagerSearch}
+                  onChange={(e) => setPasswordManagerSearch(e.target.value)}
+                  placeholder="Tìm theo tên hoặc tài khoản"
+                />
+              </div>
+
+              <div style={{ fontSize: 13, color: "#64748b", marginBottom: 10 }}>
+                Đang hiển thị <b>{passwordManagerStudents.length}</b> học sinh.
+              </div>
+
+              <div style={{ overflowX: "auto" }}>
+                <table style={styles.table}>
+                  <thead>
+                    <tr>
+                      <th style={styles.th}>Họ tên</th>
+                      <th style={styles.th}>Tài khoản</th>
+                      <th style={styles.th}>Lớp</th>
+                      <th style={styles.th}>Quân đoàn</th>
+                      <th style={styles.th}>Mật khẩu</th>
+                      <th style={styles.th}>Tác vụ</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {passwordManagerStudents.map((student) => {
+                      const guild = guildById.get(student.guildId);
+                      return (
+                        <tr key={`password-row-${student.id}`}>
+                          <td style={styles.td}>{student.name}</td>
+                          <td style={styles.td}>{student.username}</td>
+                          <td style={styles.td}>{student.className}</td>
+                          <td style={styles.td}>{guild?.name || "-"}</td>
+                          <td style={styles.td}>
+                            <input
+                              style={{ ...styles.input, minWidth: 180, margin: 0 }}
+                              type={showStudentPasswords ? "text" : "password"}
+                              value={student.password}
+                              onChange={(e) => setStudents((prev) => prev.map((item) => item.id === student.id ? { ...item, password: e.target.value } : item))}
+                              placeholder="Nhập mật khẩu"
+                            />
+                          </td>
+                          <td style={styles.td}>
+                            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                              <button
+                                style={styles.secondaryBtn}
+                                onClick={() => {
+                                  setStudents((prev) => prev.map((item) => item.id === student.id ? { ...item, password: "123456" } : item));
+                                  addLog("student_password_reset_one", `Đã đặt lại mật khẩu của ${student.name} về 123456.`);
+                                }}
+                              >
+                                Reset 123456
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         )}
       </div>
