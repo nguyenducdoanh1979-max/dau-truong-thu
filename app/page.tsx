@@ -656,6 +656,20 @@ function getGuildLevelInfo(exp: number) {
   return { level, current: remain, next: getGuildLevelNeed(level), buffPercent: Math.max(0, (level - 1) * 2) };
 }
 
+function getPersonalLevelNeed(level: number) {
+  return getGuildLevelNeed(level);
+}
+
+function getPersonalLevelInfo(points: number) {
+  let level = 1;
+  let remain = points;
+  while (remain >= getPersonalLevelNeed(level)) {
+    remain -= getPersonalLevelNeed(level);
+    level += 1;
+  }
+  return { level, current: remain, next: getPersonalLevelNeed(level) };
+}
+
 
 function getPersonalPointShare(score: number) {
   return Math.floor(score / 2);
