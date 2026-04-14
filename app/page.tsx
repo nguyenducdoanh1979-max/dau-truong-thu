@@ -2115,6 +2115,7 @@ export default function Page() {
       .sort((a, b) => b.damage - a.damage || b.correctCount - a.correctCount || ((a.student?.name || "").localeCompare(b.student?.name || "")));
   }, [bossEvent, students]);
   const currentStudent = useMemo(() => students.find((s) => s.id === currentStudentId) || null, [students, currentStudentId]);
+  const currentStudentPersonalLevel = useMemo(() => currentStudent ? getPersonalLevelInfo(currentStudent.totalPoints).level : 1, [currentStudent]);
   const recentHatchGuilds = useMemo(
     () => activeGuilds.filter((g) => g.level >= 6 && !!g.reachedLevel12At && isRecentTimestamp(g.reachedLevel12At, 15 * 60 * 1000)),
     [activeGuilds]
@@ -4420,7 +4421,7 @@ function launchTerritoryRaid() {
                   <>
                     <div style={{ textAlign: "center", fontWeight: 800, fontSize: 20, marginBottom: 10 }}>Thú chiến của bạn</div>
                     <div style={{ ...styles.studentBeastFrame, ...getBeastFrameStyle(currentStudent.beast), ...(isRecentTimestamp(guild.reachedLevel12At, 15 * 60 * 1000) ? styles.hatchCelebrationFrame : {}) }}>
-                      {isRecentTimestamp(guild.reachedLevel12At, 15 * 60 * 1000) && (
+                      {currentStudentPersonalLevel >= 4 && currentStudent?.beastAwakenedAt && isRecentTimestamp(currentStudent.beastAwakenedAt, 15 * 60 * 1000) && (
                         <>
                           <div style={styles.hatchBurstRing} />
                           <div style={styles.hatchBurstSparkLeft}>✨</div>
@@ -4454,18 +4455,18 @@ function launchTerritoryRaid() {
                       </div>
                     </div>
                     <div style={{ textAlign: "center", marginTop: 12, fontSize: 22 }}><b>{currentStudent.beast.species}</b> · Hệ {currentStudent.beast.element}</div>
-                    {isRecentTimestamp(guild.reachedLevel12At, 15 * 60 * 1000) && (
-                      <div style={styles.hatchCelebrationText}>🌟 Trứng quân đoàn vừa nở ở cấp 6! Thú chiến đã thức tỉnh với hiệu ứng bùng nổ ánh sáng.</div>
+                    {currentStudentPersonalLevel >= 4 && currentStudent?.beastAwakenedAt && isRecentTimestamp(currentStudent.beastAwakenedAt, 15 * 60 * 1000) && (
+                      <div style={styles.hatchCelebrationText}>🌟 Trứng cá nhân vừa nở theo cấp của học sinh. Thú chiến đã thức tỉnh với hiệu ứng bùng nổ ánh sáng.</div>
                     )}
                   </>
                 ) : (
                   <div>
-                    <div style={{ ...styles.studentBeastFrame, ...styles.eggFrame, ...(guild.level >= 6 ? styles.eggGlowAnimated : {}), boxShadow: guild.level >= 6 ? "0 0 20px rgba(250,204,21,0.45)" : "0 0 10px rgba(148,163,184,0.25)" }}>
-                      <img src={getEggImage(guild.level)} alt="egg" onError={(e) => { e.currentTarget.style.display = "none"; const next = e.currentTarget.nextElementSibling as HTMLElement | null; if (next) next.style.display = "flex"; }} style={{ ...styles.studentBeastImage, ...styles.eggAnimated }} /><div style={{ display: "none", alignItems: "center", justifyContent: "center", width: "100%", height: "100%", fontSize: 88 }}>🥚</div>
+                    <div style={{ ...styles.studentBeastFrame, ...styles.eggFrame, ...(currentStudentPersonalLevel >= 4 ? styles.eggGlowAnimated : {}), boxShadow: currentStudentPersonalLevel >= 4 ? "0 0 20px rgba(250,204,21,0.45)" : currentStudentPersonalLevel >= 3 ? "0 0 14px rgba(59,130,246,0.35)" : "0 0 10px rgba(148,163,184,0.25)" }}>
+                      <img src={getEggImage(currentStudentPersonalLevel)} alt="egg" onError={(e) => { e.currentTarget.style.display = "none"; const next = e.currentTarget.nextElementSibling as HTMLElement | null; if (next) next.style.display = "flex"; }} style={{ ...styles.studentBeastImage, ...styles.eggAnimated }} /><div style={{ display: "none", alignItems: "center", justifyContent: "center", width: "100%", height: "100%", fontSize: 88 }}>🥚</div>
                     </div>
-                    <div style={{ marginTop: 10, textAlign: "center", fontSize: 20, fontWeight: 800 }}>Trứng thú đang chờ nở</div><div style={{ marginTop: 6, textAlign: "center" }}>Quân đoàn cần đạt cấp 6 để thú xuất hiện và kích hoạt đầy đủ trang phục.</div>
+                    <div style={{ marginTop: 10, textAlign: "center", fontSize: 20, fontWeight: 800 }}>Trứng thú cá nhân</div><div style={{ marginTop: 6, textAlign: "center" }}>Trứng ấp và nở theo cấp cá nhân, không phụ thuộc cấp quân đoàn.</div>
                     <div style={{ fontSize: 13, color: "#64748b", marginTop: 6, textAlign: "center" }}>
-                      {guild.level >= 6 ? "Trứng đã nở, đang đếm ngược 3 ngày để chốt đoàn trưởng." : guild.level >= 4 ? "Trứng đã bắt đầu ấp và phát sáng." : "Chưa đạt mốc ấp trứng."}
+                      {currentStudentPersonalLevel >= 4 ? "Trứng đã nở theo cấp cá nhân." : currentStudentPersonalLevel >= 3 ? "Trứng đang ấp và phát sáng theo cấp cá nhân." : "Chưa đạt mốc ấp trứng cá nhân."}
                     </div>
                   </div>
                 )}
@@ -4880,16 +4881,16 @@ function launchTerritoryRaid() {
                           </div>
                         ) : (
                           <div style={styles.beastDisplayRow}>
-                            <div style={{ ...styles.eggFrameWide, ...(guild.level >= 6 ? styles.eggGlowAnimated : {}), boxShadow: guild.level >= 6 ? "0 0 18px rgba(250,204,21,0.35)" : "0 0 10px rgba(148,163,184,0.2)" }}>
-                              <img src={getEggImage(guild.level)} alt="egg" style={{ ...styles.eggImageWide, ...styles.eggAnimated }} />
+                            <div style={{ ...styles.eggFrameWide, ...(getPersonalLevelInfo(s.totalPoints).level >= 4 ? styles.eggGlowAnimated : {}), boxShadow: getPersonalLevelInfo(s.totalPoints).level >= 4 ? "0 0 18px rgba(250,204,21,0.35)" : getPersonalLevelInfo(s.totalPoints).level >= 3 ? "0 0 12px rgba(59,130,246,0.28)" : "0 0 10px rgba(148,163,184,0.2)" }}>
+                              <img src={getEggImage(getPersonalLevelInfo(s.totalPoints).level)} alt="egg" style={{ ...styles.eggImageWide, ...styles.eggAnimated }} />
                               <div style={styles.beastOverlayTop}>
                                 <div style={{ ...styles.beastOverlayBadge, color: "#eab308", background: "rgba(255,255,255,0.92)", borderColor: "#f59e0b" }}>
-                                  Trứng thú
+                                  Trứng cá nhân
                                 </div>
                               </div>
                               <div style={styles.beastOverlayBottom}>
-                                <div style={styles.beastOverlayMuted}>Cấp bang {guild.level}</div>
-                                <div style={styles.beastOverlayMuted}>{guild.level >= 6 ? "Đã nở / chờ chốt trưởng" : guild.level >= 4 ? "Đang ấp" : "Chưa đủ cấp"}</div>
+                                <div style={styles.beastOverlayMuted}>Cấp cá nhân {getPersonalLevelInfo(s.totalPoints).level}</div>
+                                <div style={styles.beastOverlayMuted}>{getPersonalLevelInfo(s.totalPoints).level >= 4 ? "Đã nở" : getPersonalLevelInfo(s.totalPoints).level >= 3 ? "Đang ấp" : "Chưa đủ cấp cá nhân"}</div>
                               </div>
                             </div>
                           </div>
@@ -5081,8 +5082,8 @@ function launchTerritoryRaid() {
                   </div>
 
                   <div style={styles.guildRoleSummary}>
-                    <div><b>Trạng thái trứng:</b> {guild.level >= 6 ? "Đã nở" : guild.level >= 4 ? "Đang ấp / phát sáng" : "Chưa ấp"}</div>
-                    <div><b>Đoàn trưởng:</b> {members.find((s) => s.id === guild.leaderStudentId)?.name || (guild.level >= 6 ? "Đang đếm ngược chốt sau 3 ngày" : "-")}</div>
+                    <div><b>Trạng thái trứng của quân đoàn:</b> {beastMembers.length > 0 ? `Đã có ${beastMembers.length} thú đã nở trong quân đoàn` : "Chưa có thành viên nào nở thú"}</div>
+                    <div><b>Đoàn trưởng:</b> {members.find((s) => s.id === guild.leaderStudentId)?.name || (beastMembers.length > 0 ? "Đang đếm ngược chốt sau 3 ngày" : "-")}</div>
                     <div><b>Đoàn phó:</b> {guild.viceLeaderStudentIds.map((id) => members.find((s) => s.id === id)?.name).filter(Boolean).join(", ") || "-"}</div>
                     <div><b>Luật đoàn phó:</b> đếm theo tổng thành viên, xếp theo lực chiến thú (không tính đoàn trưởng).</div>
                   </div>
