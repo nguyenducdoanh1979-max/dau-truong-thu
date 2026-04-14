@@ -1911,44 +1911,13 @@ export default function Page() {
   const autoSubmittedRef = useRef(false);
   const resolvingConquestRef = useRef(false);
 
-  const loginImageCandidates = useMemo(() => ({
-    top: [1, 2, 3, 4, 5].map((index) => `/login/top/top-${index}.jpg`),
-    left: [1, 2, 3, 4, 5].map((index) => `/login/left/left-${index}.jpg`),
-    right: [1, 2, 3, 4, 5].map((index) => `/login/right/right-${index}.jpg`),
-  }), []);
-  const [loginImageIndex, setLoginImageIndex] = useState({ top: 0, left: 0, right: 0 });
-
-  useEffect(() => {
-    const timer = window.setInterval(() => {
-      setLoginImageIndex((prev) => ({
-        top: (prev.top + 1) % loginImageCandidates.top.length,
-        left: (prev.left + 1) % loginImageCandidates.left.length,
-        right: (prev.right + 1) % loginImageCandidates.right.length,
-      }));
-    }, 8000);
-    return () => window.clearInterval(timer);
-  }, [loginImageCandidates]);
-
-  function renderLoginImage(src: string, alt: string, fallbackText: string, height: number) {
-    return (
-      <div style={{ position: "relative", width: "100%", height, borderRadius: 22, overflow: "hidden", background: "linear-gradient(135deg, rgba(15,23,42,0.94), rgba(37,99,235,0.78))", border: "1px solid rgba(255,255,255,0.12)", boxShadow: "0 22px 48px rgba(15,23,42,0.25)" }}>
-        <img
-          src={src}
-          alt={alt}
-          style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
-          onError={(event) => {
-            event.currentTarget.style.display = "none";
-            const fallback = event.currentTarget.nextElementSibling as HTMLElement | null;
-            if (fallback) fallback.style.display = "flex";
-          }}
-        />
-        <div style={{ display: "none", position: "absolute", inset: 0, alignItems: "center", justifyContent: "center", padding: 18, textAlign: "center", color: "#e2e8f0", fontWeight: 700, lineHeight: 1.5, background: "linear-gradient(135deg, rgba(15,23,42,0.96), rgba(37,99,235,0.7))" }}>
-          {fallbackText}
-        </div>
-        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(15,23,42,0.18), rgba(15,23,42,0.5))", pointerEvents: "none" }} />
-      </div>
-    );
-  }
+  const loginShowcase = useMemo(() => {
+    const formula = LOGIN_FORMULA_CARDS[Math.floor(Math.random() * LOGIN_FORMULA_CARDS.length)];
+    const beast = LOGIN_BEAST_SHOWCASE[Math.floor(Math.random() * LOGIN_BEAST_SHOWCASE.length)];
+    const item = LOGIN_ITEM_SHOWCASE[Math.floor(Math.random() * LOGIN_ITEM_SHOWCASE.length)];
+    const fact = LOGIN_GEOMETRY_FACTS[Math.floor(Math.random() * LOGIN_GEOMETRY_FACTS.length)];
+    return { formula, beast, item, fact };
+  }, []);
 
   function renderLoginShell(content: React.ReactNode, mode: "select" | "admin" | "student") {
     const modeTitle = mode === "select" ? "Chiến trường học tập" : mode === "admin" ? "Cổng điều phối giáo viên" : "Khu đăng nhập chiến binh";
@@ -1963,48 +1932,54 @@ export default function Page() {
     const rightImage = loginImageCandidates.right[loginImageIndex.right];
 
     return (
-      <div style={{ minHeight: "100vh", background: "linear-gradient(135deg, #15357f, #2b5fdb)", padding: "16px 20px 22px" }}>
-        <div style={{ maxWidth: 1600, margin: "0 auto", display: "grid", gridTemplateColumns: "300px minmax(520px, 1fr) 300px", gap: 18, alignItems: "start" }}>
+      <div style={{ minHeight: "100vh", background: "radial-gradient(circle at top left, rgba(255,255,255,0.08), transparent 20%), linear-gradient(135deg, #15357f, #2b5fdb)", padding: "18px 24px 24px" }}>
+        <div style={{ maxWidth: 1580, margin: "0 auto", display: "grid", gridTemplateColumns: "320px minmax(760px, 1fr) 320px", gap: 18, alignItems: "stretch" }}>
           <div style={{ gridColumn: "1 / -1" }}>
-            {renderLoginImage(topImage, "Ảnh banner trên cùng", "Chưa đọc được ảnh trên cùng. Hãy kiểm tra đúng tên file trong /public/login/top: top-1.jpg ... top-5.jpg rồi redeploy lại.", 200)}
+            {renderLoginImage(topImage, "Ảnh banner trên cùng", "Chưa đọc được ảnh trên cùng. Hãy kiểm tra đúng tên file trong /public/login/top: top-1.jpg ... top-5.jpg rồi redeploy lại.", 182)}
           </div>
 
-          <div>
-            {renderLoginImage(leftImage, "Ảnh trái", "Không thấy ảnh trái. Hãy đặt file đúng tên trong /public/login/left: left-1.jpg ... left-5.jpg rồi redeploy.", 520)}
+          <div style={{ display: "flex", alignItems: "stretch" }}>
+            <div style={{ width: "100%", background: "rgba(8,15,40,0.20)", borderRadius: 28, padding: 12, boxShadow: "inset 0 1px 0 rgba(255,255,255,0.08)" }}>
+              {renderLoginImage(leftImage, "Ảnh trái", "Không thấy ảnh trái. Hãy đặt file đúng tên trong /public/login/left: left-1.jpg ... left-5.jpg rồi redeploy.", 650)}
+            </div>
           </div>
 
-          <div style={{ background: "rgba(255,255,255,0.96)", borderRadius: 28, padding: 28, boxShadow: "0 24px 60px rgba(15,23,42,0.22)", minHeight: 520, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
-            <div>
-              <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "center", marginBottom: 16 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div style={{ width: "100%", background: "rgba(248,250,252,0.98)", borderRadius: 34, padding: 28, boxShadow: "0 28px 64px rgba(15,23,42,0.24)", minHeight: 650, display: "grid", gridTemplateRows: "auto 1fr auto", border: "1px solid rgba(255,255,255,0.75)" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 18, flexWrap: "wrap" }}>
                 <div>
-                  <div style={{ display: "inline-flex", padding: "8px 16px", borderRadius: 999, background: "#dbeafe", border: "1px solid #bfdbfe", color: "#1d4ed8", fontWeight: 800, marginBottom: 10 }}>{modeTitle}</div>
-                  <div style={{ fontSize: 46, fontWeight: 900, color: "#0f172a", lineHeight: 1.05 }}>Đăng nhập</div>
+                  <div style={{ display: "inline-flex", padding: "9px 18px", borderRadius: 999, background: "linear-gradient(135deg, rgba(37,99,235,0.12), rgba(59,130,246,0.2))", color: "#1d4ed8", fontWeight: 800, marginBottom: 14, border: "1px solid rgba(37,99,235,0.12)" }}>{modeTitle}</div>
+                  <div style={{ fontSize: 60, fontWeight: 900, color: "#0f172a", lineHeight: 1.02, marginBottom: 12, letterSpacing: "-0.03em" }}>Đăng nhập</div>
+                  <div style={{ fontSize: 17, color: "#334155", fontWeight: 700, maxWidth: 620 }}>{modeText}</div>
                 </div>
-                <div style={{ display: "flex", gap: 8, alignItems: "flex-start", flexWrap: "wrap", maxWidth: 360, justifyContent: "flex-end" }}>
+                <div style={{ display: "flex", gap: 10, alignItems: "flex-start", flexWrap: "wrap", justifyContent: "flex-end", maxWidth: 360 }}>
                   {['📘 Toán học cấp 2', '📐 Hình học trực quan', '🧠 Danh nhân khoa học'].map((chip) => (
-                    <span key={chip} style={{ padding: "8px 12px", borderRadius: 999, background: "#eff6ff", border: "1px solid #dbeafe", color: "#1e3a8a", fontWeight: 700, fontSize: 13 }}>{chip}</span>
+                    <span key={chip} style={{ padding: "10px 16px", borderRadius: 999, background: "#eff6ff", color: "#1e3a8a", border: "1px solid #bfdbfe", fontWeight: 800 }}>{chip}</span>
                   ))}
                 </div>
               </div>
-              <div style={{ fontSize: 17, color: "#475569", fontWeight: 600, marginBottom: 18 }}>{modeText}</div>
-              <div style={{ borderTop: "1px solid #e2e8f0", marginBottom: 22 }} />
-              {content}
-            </div>
 
-            <div style={{ marginTop: 18, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-              <div style={{ borderRadius: 18, background: "#f8fafc", border: "1px solid #e2e8f0", padding: "12px 14px" }}>
-                <div style={{ fontSize: 12, fontWeight: 800, color: "#1d4ed8", marginBottom: 6 }}>Bản quyền tác giả</div>
-                <div style={{ fontSize: 14, color: "#334155", lineHeight: 1.5 }}>Nguyễn Đức Doanh - THCS Đông Xá - Vân Đồn - Quảng Ninh</div>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "22px 0" }}>
+                {content}
               </div>
-              <div style={{ borderRadius: 18, background: "#f8fafc", border: "1px solid #e2e8f0", padding: "12px 14px" }}>
-                <div style={{ fontSize: 12, fontWeight: 800, color: "#1d4ed8", marginBottom: 6 }}>Bản quyền hình ảnh</div>
-                <div style={{ fontSize: 14, color: "#334155", lineHeight: 1.5 }}>Ô này để trống để bạn tự ghi nguồn / bản quyền ảnh.</div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div style={{ borderRadius: 18, background: "#f8fafc", border: "1px solid #dbeafe", padding: "14px 16px", minHeight: 86, display: "grid", alignContent: "start", gap: 6 }}>
+                  <div style={{ fontSize: 14, fontWeight: 900, color: "#1d4ed8" }}>Bản quyền tác giả</div>
+                  <div style={{ fontSize: 16, color: "#334155", fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }} title="Nguyễn Đức Doanh - THCS Đông Xá - Vân Đồn - Quảng Ninh - SĐT: 0388584296">Nguyễn Đức Doanh - THCS Đông Xá - Vân Đồn - Quảng Ninh - SĐT: 0388584296</div>
+                </div>
+                <div style={{ borderRadius: 18, background: "#f8fafc", border: "1px solid #dbeafe", padding: "14px 16px", minHeight: 86, display: "grid", alignContent: "start", gap: 6 }}>
+                  <div style={{ fontSize: 14, fontWeight: 900, color: "#1d4ed8" }}>Bản quyền hình ảnh</div>
+                  <div style={{ fontSize: 15, color: "#475569", fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }} title="Bạn có thể thay nguồn hoặc bản quyền hình ảnh tại đây.">Bạn có thể thay nguồn hoặc bản quyền hình ảnh tại đây.</div>
+                </div>
               </div>
             </div>
           </div>
 
-          <div>
-            {renderLoginImage(rightImage, "Ảnh phải", "Không thấy ảnh phải. Hãy đặt file đúng tên trong /public/login/right: right-1.jpg ... right-5.jpg rồi redeploy.", 520)}
+          <div style={{ display: "flex", alignItems: "stretch" }}>
+            <div style={{ width: "100%", background: "rgba(8,15,40,0.20)", borderRadius: 28, padding: 12, boxShadow: "inset 0 1px 0 rgba(255,255,255,0.08)" }}>
+              {renderLoginImage(rightImage, "Ảnh phải", "Không thấy ảnh phải. Hãy đặt file đúng tên trong /public/login/right: right-1.jpg ... right-5.jpg rồi redeploy.", 650)}
+            </div>
           </div>
         </div>
       </div>
@@ -4160,6 +4135,7 @@ function launchTerritoryRaid() {
         <p style={{ color: "#64748b", marginTop: 8 }}>Chọn khu vực đăng nhập</p>
         <button style={styles.primaryBtn} onClick={() => setRole("admin_login")}>Đăng nhập giáo viên</button>
         <button style={styles.secondaryBtn} onClick={() => setRole("student_login")}>Đăng nhập học sinh</button>
+        
       </div>,
       "select"
     );
@@ -4173,6 +4149,7 @@ function launchTerritoryRaid() {
         <input style={styles.input} type="password" value={loginPass} onChange={(e) => setLoginPass(e.target.value)} placeholder="Mật khẩu" />
         <button style={styles.primaryBtn} onClick={handleAdminLogin}>Đăng nhập</button>
         <button style={styles.secondaryBtn} onClick={() => setRole("select")}>Quay lại</button>
+        
       </div>,
       "admin"
     );
@@ -4186,6 +4163,7 @@ function launchTerritoryRaid() {
         <input style={styles.input} type="password" value={studentPass} onChange={(e) => setStudentPass(e.target.value)} placeholder="Mật khẩu" />
         <button style={styles.primaryBtn} onClick={handleStudentLogin}>Đăng nhập</button>
         <button style={styles.secondaryBtn} onClick={() => setRole("select")}>Quay lại</button>
+        
       </div>,
       "student"
     );
@@ -6232,7 +6210,7 @@ const styles: Record<string, React.CSSProperties> = {
   loginSideColumn: { display: "grid", gap: 14, alignContent: "center", position: "relative", zIndex: 1 },
   loginCenterColumn: { display: "flex", justifyContent: "center", alignItems: "center", position: "relative", zIndex: 2, minHeight: 640 },
   loginAura: { position: "absolute", width: 240, height: 240, borderRadius: "50%", filter: "blur(38px)", pointerEvents: "none" },
-  loginCard: { width: 500, maxWidth: "100%", background: "rgba(255,255,255,0.98)", backdropFilter: "blur(12px)", borderRadius: 24, padding: 24, boxShadow: "0 16px 38px rgba(15,23,42,0.12)", display: "grid", gap: 12, border: "1px solid rgba(226,232,240,0.9)" },
+  loginCard: { width: 560, maxWidth: "100%", background: "linear-gradient(180deg, #ffffff, #f8fafc)", borderRadius: 28, padding: 28, boxShadow: "0 18px 36px rgba(15,23,42,0.08)", display: "grid", gap: 14, border: "1px solid #e2e8f0" },
   loginHeroCard: { background: "linear-gradient(135deg, rgba(15,23,42,0.88), rgba(30,64,175,0.84))", color: "#fff", borderRadius: 22, padding: 18, boxShadow: "0 14px 34px rgba(15,23,42,0.22)", border: "1px solid rgba(255,255,255,0.14)" },
   loginHeroBadge: { display: "inline-flex", alignItems: "center", padding: "6px 12px", borderRadius: 999, fontSize: 12, fontWeight: 800, letterSpacing: 0.3, background: "rgba(255,255,255,0.16)", border: "1px solid rgba(255,255,255,0.16)" },
   loginHeroTitle: { fontSize: 30, lineHeight: 1.08, fontWeight: 900, marginTop: 14, textShadow: "0 4px 24px rgba(0,0,0,0.24)" },
