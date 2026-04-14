@@ -1933,9 +1933,16 @@ export default function Page() {
       "/login/right/right-4.jpg",
       "/login/right/right-5.jpg",
     ],
+    copyright: [
+      "/login/copyright/copyright-1.jpg",
+      "/login/copyright/copyright-2.jpg",
+      "/login/copyright/copyright-3.jpg",
+      "/login/copyright/copyright-4.jpg",
+      "/login/copyright/copyright-5.jpg",
+    ],
   }), []);
 
-  const [loginImageIndex, setLoginImageIndex] = useState({ top: 0, left: 0, right: 0 });
+  const [loginImageIndex, setLoginImageIndex] = useState({ top: 0, left: 0, right: 0, copyright: 0 });
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -1943,6 +1950,7 @@ export default function Page() {
         top: (prev.top + 1) % loginImageCandidates.top.length,
         left: (prev.left + 1) % loginImageCandidates.left.length,
         right: (prev.right + 1) % loginImageCandidates.right.length,
+        copyright: (prev.copyright + 1) % loginImageCandidates.copyright.length,
       }));
     }, 8000);
     return () => window.clearInterval(timer);
@@ -2002,64 +2010,55 @@ export default function Page() {
 
   function renderLoginShell(content: React.ReactNode, mode: "select" | "admin" | "student") {
     const modeTitle = mode === "select" ? "Chiến trường học tập" : mode === "admin" ? "Cổng điều phối giáo viên" : "Khu đăng nhập chiến binh";
-    const modeText = mode === "select"
-      ? "Giải bài - nhận điểm - mở khóa thú chiến - tranh hạng quân đoàn."
-      : mode === "admin"
-        ? "Điều phối nhiệm vụ, quản lý thành viên, bật boss thế giới và theo dõi bảng xếp hạng."
-        : "Đăng nhập để làm bài, tăng lực chiến thú và leo bảng xếp hạng.";
 
     const topImage = loginImageCandidates.top[loginImageIndex.top];
     const leftImage = loginImageCandidates.left[loginImageIndex.left];
     const rightImage = loginImageCandidates.right[loginImageIndex.right];
+    const copyrightImage = loginImageCandidates.copyright[loginImageIndex.copyright];
 
     return (
       <div style={{ minHeight: "100vh", background: "radial-gradient(circle at top left, rgba(255,255,255,0.08), transparent 20%), linear-gradient(135deg, #15357f, #2b5fdb)", padding: "18px 24px 24px" }}>
-        <div style={{ maxWidth: 1580, margin: "0 auto", display: "grid", gridTemplateColumns: "320px minmax(760px, 1fr) 320px", gap: 18, alignItems: "stretch" }}>
+        <div style={{ maxWidth: 1780, margin: "0 auto", display: "grid", gridTemplateColumns: "430px minmax(560px, 620px) 430px", gap: 22, alignItems: "stretch", justifyContent: "center" }}>
           <div style={{ gridColumn: "1 / -1" }}>
-            {renderLoginImage(topImage, "Ảnh banner trên cùng", "Chưa đọc được ảnh trên cùng. Hãy kiểm tra đúng tên file trong /public/login/top: top-1.jpg ... top-5.jpg rồi redeploy lại.", 182)}
+            {renderLoginImage(topImage, "Ảnh banner trên cùng", "Chưa đọc được ảnh trên cùng. Hãy kiểm tra đúng tên file trong /public/login/top: top-1.jpg ... top-5.jpg rồi redeploy lại.", 230)}
           </div>
 
           <div style={{ display: "flex", alignItems: "stretch" }}>
-            <div style={{ width: "100%", background: "rgba(8,15,40,0.20)", borderRadius: 28, padding: 12, boxShadow: "inset 0 1px 0 rgba(255,255,255,0.08)" }}>
-              {renderLoginImage(leftImage, "Ảnh trái", "Không thấy ảnh trái. Hãy đặt file đúng tên trong /public/login/left: left-1.jpg ... left-5.jpg rồi redeploy.", 650)}
+            <div style={{ width: "100%", background: "rgba(8,15,40,0.18)", borderRadius: 30, padding: 12, boxShadow: "inset 0 1px 0 rgba(255,255,255,0.08)" }}>
+              {renderLoginImage(leftImage, "Ảnh trái", "Không thấy ảnh trái. Hãy đặt file đúng tên trong /public/login/left: left-1.jpg ... left-5.jpg rồi redeploy.", 720)}
             </div>
           </div>
 
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <div style={{ width: "100%", background: "rgba(248,250,252,0.98)", borderRadius: 34, padding: 28, boxShadow: "0 28px 64px rgba(15,23,42,0.24)", minHeight: 650, display: "grid", gridTemplateRows: "auto 1fr auto", border: "1px solid rgba(255,255,255,0.75)" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 18, flexWrap: "wrap" }}>
-                <div>
-                  <div style={{ display: "inline-flex", padding: "9px 18px", borderRadius: 999, background: "linear-gradient(135deg, rgba(37,99,235,0.12), rgba(59,130,246,0.2))", color: "#1d4ed8", fontWeight: 800, marginBottom: 14, border: "1px solid rgba(37,99,235,0.12)" }}>{modeTitle}</div>
-                  <div style={{ fontSize: 60, fontWeight: 900, color: "#0f172a", lineHeight: 1.02, marginBottom: 12, letterSpacing: "-0.03em" }}>Đăng nhập</div>
-                  <div style={{ fontSize: 17, color: "#334155", fontWeight: 700, maxWidth: 620 }}>{modeText}</div>
-                </div>
-                <div style={{ display: "flex", gap: 10, alignItems: "flex-start", flexWrap: "wrap", justifyContent: "flex-end", maxWidth: 360 }}>
-                  {['📘 Toán học cấp 2', '📐 Hình học trực quan', '🧠 Danh nhân khoa học'].map((chip) => (
-                    <span key={chip} style={{ padding: "10px 16px", borderRadius: 999, background: "#eff6ff", color: "#1e3a8a", border: "1px solid #bfdbfe", fontWeight: 800 }}>{chip}</span>
-                  ))}
-                </div>
+            <div style={{ width: "100%", maxWidth: 620, background: "rgba(248,250,252,0.98)", borderRadius: 34, padding: 24, boxShadow: "0 28px 64px rgba(15,23,42,0.24)", minHeight: 720, display: "grid", gridTemplateRows: "auto 1fr auto", border: "1px solid rgba(255,255,255,0.75)" }}>
+              <div style={{ display: "grid", gap: 10, marginBottom: 10 }}>
+                <div style={{ display: "inline-flex", justifySelf: "start", padding: "9px 18px", borderRadius: 999, background: "linear-gradient(135deg, rgba(37,99,235,0.12), rgba(59,130,246,0.2))", color: "#1d4ed8", fontWeight: 800, border: "1px solid rgba(37,99,235,0.12)" }}>{modeTitle}</div>
+                <div style={{ fontSize: 56, fontWeight: 900, color: "#0f172a", lineHeight: 1.02, letterSpacing: "-0.03em" }}>Đăng nhập</div>
               </div>
 
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "22px 0" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "8px 0 18px" }}>
                 {content}
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                <div style={{ borderRadius: 18, background: "#f8fafc", border: "1px solid #dbeafe", padding: "14px 16px", minHeight: 86, display: "grid", alignContent: "start", gap: 6 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1.25fr 1fr", gap: 12, alignItems: "stretch" }}>
+                <div style={{ borderRadius: 18, background: "#f8fafc", border: "1px solid #dbeafe", padding: "14px 16px", minHeight: 132, display: "grid", alignContent: "start", gap: 8 }}>
                   <div style={{ fontSize: 14, fontWeight: 900, color: "#1d4ed8" }}>Bản quyền tác giả</div>
-                  <div style={{ fontSize: 16, color: "#334155", fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }} title="Nguyễn Đức Doanh - THCS Đông Xá - Vân Đồn - Quảng Ninh - SĐT: 0388584296">Nguyễn Đức Doanh - THCS Đông Xá - Vân Đồn - Quảng Ninh - SĐT: 0388584296</div>
+                  <div style={{ fontSize: 16, color: "#334155", fontWeight: 700, lineHeight: 1.6, wordBreak: "break-word" }}>Nguyễn Đức Doanh - THCS Đông Xá - Vân Đồn - Quảng Ninh - SĐT: 0388584296</div>
                 </div>
-                <div style={{ borderRadius: 18, background: "#f8fafc", border: "1px solid #dbeafe", padding: "14px 16px", minHeight: 86, display: "grid", alignContent: "start", gap: 6 }}>
+                <div style={{ borderRadius: 18, background: "#f8fafc", border: "1px solid #dbeafe", padding: "14px 16px", minHeight: 132, display: "grid", gridTemplateRows: "auto auto 1fr", gap: 8 }}>
                   <div style={{ fontSize: 14, fontWeight: 900, color: "#1d4ed8" }}>Bản quyền hình ảnh</div>
-                  <div style={{ fontSize: 15, color: "#475569", fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }} title="Bạn có thể thay nguồn hoặc bản quyền hình ảnh tại đây.">Bạn có thể thay nguồn hoặc bản quyền hình ảnh tại đây.</div>
+                  <div style={{ fontSize: 14, color: "#475569", fontWeight: 600, lineHeight: 1.5 }}>Bạn có thể thay nguồn hoặc bản quyền hình ảnh tại đây.</div>
+                  <div>
+                    {renderLoginImage(copyrightImage, "Ảnh bản quyền", "Chưa thấy ảnh bản quyền. Hãy đặt file trong /public/login/copyright: copyright-1.jpg ... copyright-5.jpg rồi redeploy.", 84)}
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
           <div style={{ display: "flex", alignItems: "stretch" }}>
-            <div style={{ width: "100%", background: "rgba(8,15,40,0.20)", borderRadius: 28, padding: 12, boxShadow: "inset 0 1px 0 rgba(255,255,255,0.08)" }}>
-              {renderLoginImage(rightImage, "Ảnh phải", "Không thấy ảnh phải. Hãy đặt file đúng tên trong /public/login/right: right-1.jpg ... right-5.jpg rồi redeploy.", 650)}
+            <div style={{ width: "100%", background: "rgba(8,15,40,0.18)", borderRadius: 30, padding: 12, boxShadow: "inset 0 1px 0 rgba(255,255,255,0.08)" }}>
+              {renderLoginImage(rightImage, "Ảnh phải", "Không thấy ảnh phải. Hãy đặt file đúng tên trong /public/login/right: right-1.jpg ... right-5.jpg rồi redeploy.", 720)}
             </div>
           </div>
         </div>
