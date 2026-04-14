@@ -1911,13 +1911,44 @@ export default function Page() {
   const autoSubmittedRef = useRef(false);
   const resolvingConquestRef = useRef(false);
 
-  const loginShowcase = useMemo(() => {
-    const formula = LOGIN_FORMULA_CARDS[Math.floor(Math.random() * LOGIN_FORMULA_CARDS.length)];
-    const beast = LOGIN_BEAST_SHOWCASE[Math.floor(Math.random() * LOGIN_BEAST_SHOWCASE.length)];
-    const item = LOGIN_ITEM_SHOWCASE[Math.floor(Math.random() * LOGIN_ITEM_SHOWCASE.length)];
-    const fact = LOGIN_GEOMETRY_FACTS[Math.floor(Math.random() * LOGIN_GEOMETRY_FACTS.length)];
-    return { formula, beast, item, fact };
-  }, []);
+  const loginImageCandidates = useMemo(() => ({
+    top: [1, 2, 3, 4, 5].map((index) => `/login/top/top-${index}.jpg`),
+    left: [1, 2, 3, 4, 5].map((index) => `/login/left/left-${index}.jpg`),
+    right: [1, 2, 3, 4, 5].map((index) => `/login/right/right-${index}.jpg`),
+  }), []);
+  const [loginImageIndex, setLoginImageIndex] = useState({ top: 0, left: 0, right: 0 });
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setLoginImageIndex((prev) => ({
+        top: (prev.top + 1) % loginImageCandidates.top.length,
+        left: (prev.left + 1) % loginImageCandidates.left.length,
+        right: (prev.right + 1) % loginImageCandidates.right.length,
+      }));
+    }, 8000);
+    return () => window.clearInterval(timer);
+  }, [loginImageCandidates]);
+
+  function renderLoginImage(src: string, alt: string, fallbackText: string, height: number) {
+    return (
+      <div style={{ position: "relative", width: "100%", height, borderRadius: 22, overflow: "hidden", background: "linear-gradient(135deg, rgba(15,23,42,0.94), rgba(37,99,235,0.78))", border: "1px solid rgba(255,255,255,0.12)", boxShadow: "0 22px 48px rgba(15,23,42,0.25)" }}>
+        <img
+          src={src}
+          alt={alt}
+          style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+          onError={(event) => {
+            event.currentTarget.style.display = "none";
+            const fallback = event.currentTarget.nextElementSibling as HTMLElement | null;
+            if (fallback) fallback.style.display = "flex";
+          }}
+        />
+        <div style={{ display: "none", position: "absolute", inset: 0, alignItems: "center", justifyContent: "center", padding: 18, textAlign: "center", color: "#e2e8f0", fontWeight: 700, lineHeight: 1.5, background: "linear-gradient(135deg, rgba(15,23,42,0.96), rgba(37,99,235,0.7))" }}>
+          {fallbackText}
+        </div>
+        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(15,23,42,0.18), rgba(15,23,42,0.5))", pointerEvents: "none" }} />
+      </div>
+    );
+  }
 
   function renderLoginShell(content: React.ReactNode, mode: "select" | "admin" | "student") {
     const modeTitle = mode === "select" ? "Chiến trường học tập" : mode === "admin" ? "Cổng điều phối giáo viên" : "Khu đăng nhập chiến binh";
@@ -1925,123 +1956,45 @@ export default function Page() {
       ? "Giải bài - nhận điểm - mở khóa thú chiến - tranh hạng quân đoàn."
       : mode === "admin"
         ? "Điều phối nhiệm vụ, quản lý thành viên, bật boss thế giới và theo dõi bảng xếp hạng."
-        : "Đăng nhập để làm bài, tăng lực chiến thú, săn trang bị hiếm và leo bảng xếp hạng.";
+        : "Đăng nhập để làm bài, tăng lực chiến thú và leo bảng xếp hạng.";
+
+    const topImage = loginImageCandidates.top[loginImageIndex.top];
+    const leftImage = loginImageCandidates.left[loginImageIndex.left];
+    const rightImage = loginImageCandidates.right[loginImageIndex.right];
 
     return (
-      <div style={styles.loginBg}>
-        <div style={styles.loginSceneWrap}>
-          <div style={{ ...styles.loginAura, top: 48, left: 70, background: "rgba(59,130,246,0.22)" }} />
-          <div style={{ ...styles.loginAura, right: 80, bottom: 40, background: "rgba(251,146,60,0.18)" }} />
-
-          <div style={styles.loginSideColumn}>
-            <div style={styles.loginHeroCard}>
-              <div style={styles.loginHeroBadge}>{modeTitle}</div>
-              <div style={styles.loginHeroTitle}>Đấu Trường Thú</div>
-              <div style={styles.loginHeroText}>{modeText}</div>
-              <div style={styles.loginChipRow}>
-                <span style={styles.loginChip}>📘 Toán học cấp 2</span>
-                <span style={styles.loginChip}>📐 Hình học trực quan</span>
-                <span style={styles.loginChip}>🧠 Danh nhân khoa học</span>
+      <div style={{ minHeight: "100vh", background: "linear-gradient(135deg, #15357f, #2b5fdb)", padding: "20px 24px 28px" }}>
+        <div style={{ maxWidth: 1480, margin: "0 auto", display: "grid", gridTemplateColumns: "280px minmax(420px, 1fr) 280px", gap: 18, alignItems: "start" }}>
+          <div style={{ gridColumn: "1 / -1" }}>
+            {renderLoginImage(topImage, "Ảnh banner trên cùng", "Chưa đọc được ảnh trên cùng. Hãy kiểm tra đúng tên file trong /public/login/top: top-1.jpg ... top-5.jpg rồi redeploy lại.", 160)}
+            <div style={{ marginTop: 12, display: "flex", justifyContent: "space-between", gap: 16, flexWrap: "wrap", color: "#ffffff" }}>
+              <div>
+                <div style={{ display: "inline-flex", padding: "8px 16px", borderRadius: 999, background: "rgba(15,23,42,0.34)", border: "1px solid rgba(255,255,255,0.18)", fontWeight: 800, marginBottom: 10 }}>{modeTitle}</div>
+                <div style={{ fontSize: 28, fontWeight: 900, marginBottom: 8 }}>Đấu Trường Thú</div>
+                <div style={{ fontSize: 16, fontWeight: 600, opacity: 0.96 }}>{modeText}</div>
               </div>
-            </div>
-
-            <div style={styles.loginGalleryCard}>
-              <div style={styles.loginSectionLabel}>Bảng học nhanh</div>
-              <div style={styles.loginFigureGrid}>
-                <div style={styles.loginFigureTile}>
-                  <svg viewBox="0 0 120 90" style={styles.loginFigureSvg}>
-                    <line x1="16" y1="72" x2="104" y2="72" stroke="#0f172a" strokeWidth="3" />
-                    <line x1="16" y1="72" x2="58" y2="18" stroke="#2563eb" strokeWidth="3" />
-                    <line x1="104" y1="72" x2="58" y2="18" stroke="#f97316" strokeWidth="3" />
-                    <text x="12" y="84" fontSize="12" fill="#0f172a">A</text>
-                    <text x="54" y="14" fontSize="12" fill="#0f172a">B</text>
-                    <text x="106" y="84" fontSize="12" fill="#0f172a">C</text>
-                    <path d="M28 72 A14 14 0 0 1 38 58" fill="none" stroke="#ef4444" strokeWidth="2" />
-                  </svg>
-                  <div style={styles.loginFigureCaption}>Tổng góc tam giác</div>
-                </div>
-                <div style={styles.loginFigureTile}>
-                  <svg viewBox="0 0 120 90" style={styles.loginFigureSvg}>
-                    <line x1="12" y1="28" x2="108" y2="28" stroke="#2563eb" strokeWidth="3" />
-                    <line x1="12" y1="64" x2="108" y2="64" stroke="#2563eb" strokeWidth="3" />
-                    <line x1="34" y1="12" x2="78" y2="80" stroke="#0f172a" strokeWidth="3" />
-                    <path d="M42 28 A10 10 0 0 1 50 38" fill="none" stroke="#f97316" strokeWidth="2" />
-                    <path d="M62 54 A10 10 0 0 1 70 64" fill="none" stroke="#f97316" strokeWidth="2" />
-                  </svg>
-                  <div style={styles.loginFigureCaption}>So le trong</div>
-                </div>
-                <div style={styles.loginFigureTile}>
-                  <svg viewBox="0 0 120 90" style={styles.loginFigureSvg}>
-                    <circle cx="60" cy="45" r="26" fill="none" stroke="#0f766e" strokeWidth="3" />
-                    <line x1="34" y1="45" x2="86" y2="45" stroke="#0f172a" strokeWidth="3" />
-                    <line x1="60" y1="45" x2="84" y2="30" stroke="#f97316" strokeWidth="3" />
-                    <text x="56" y="42" fontSize="11" fill="#0f172a">O</text>
-                    <text x="87" y="28" fontSize="11" fill="#0f172a">A</text>
-                  </svg>
-                  <div style={styles.loginFigureCaption}>Bán kính - đường kính</div>
-                </div>
-                <div style={styles.loginFigureTile}>
-                  <svg viewBox="0 0 120 90" style={styles.loginFigureSvg}>
-                    <line x1="18" y1="72" x2="96" y2="72" stroke="#0f172a" strokeWidth="3" />
-                    <line x1="18" y1="72" x2="18" y2="24" stroke="#2563eb" strokeWidth="3" />
-                    <line x1="18" y1="24" x2="96" y2="72" stroke="#f97316" strokeWidth="3" />
-                    <rect x="18" y="62" width="10" height="10" fill="none" stroke="#ef4444" strokeWidth="2" />
-                    <text x="54" y="22" fontSize="11" fill="#0f172a">c</text>
-                  </svg>
-                  <div style={styles.loginFigureCaption}>Tam giác vuông</div>
-                </div>
-              </div>
-              <div style={styles.loginFactLine}>📐 {loginShowcase.fact}</div>
-            </div>
-
-            <div style={styles.loginScientistsCard}>
-              <div style={styles.loginSectionLabel}>Danh nhân toán - lý</div>
-              <div style={styles.loginScientistsGrid}>
-                {LOGIN_SCIENTIST_CARDS.map((scientist) => (
-                  <div key={scientist.name} style={styles.loginScientistTile}>
-                    <div style={{ ...styles.loginScientistAvatar, background: `linear-gradient(135deg, ${scientist.color}, #0f172a)` }}>{scientist.badge}</div>
-                    <div>
-                      <div style={styles.loginScientistName}>{scientist.name}</div>
-                      <div style={styles.loginScientistField}>{scientist.field}</div>
-                    </div>
-                  </div>
+              <div style={{ display: "flex", gap: 10, alignItems: "flex-start", flexWrap: "wrap", maxWidth: 560 }}>
+                {['📘 Toán học cấp 2', '📐 Hình học trực quan', '🧠 Danh nhân khoa học'].map((chip) => (
+                  <span key={chip} style={{ padding: "9px 14px", borderRadius: 999, background: "rgba(15,23,42,0.34)", border: "1px solid rgba(255,255,255,0.16)", fontWeight: 700 }}>{chip}</span>
                 ))}
               </div>
             </div>
           </div>
 
-          <div style={styles.loginCenterColumn}>
+          <div>
+            {renderLoginImage(leftImage, "Ảnh trái", "Không thấy ảnh trái. Hãy đặt file đúng tên trong /public/login/left: left-1.jpg ... left-5.jpg rồi redeploy.", 560)}
+          </div>
+
+          <div style={{ background: "rgba(255,255,255,0.96)", borderRadius: 28, padding: 28, boxShadow: "0 24px 60px rgba(15,23,42,0.22)", minHeight: 560, display: "flex", flexDirection: "column", justifyContent: "center" }}>
+            <div style={{ fontSize: 50, fontWeight: 900, color: "#0f172a", lineHeight: 1.05, marginBottom: 12 }}>Đăng nhập</div>
+            <div style={{ fontSize: 19, color: "#475569", fontWeight: 600, marginBottom: 12 }}>Giao diện đã thu gọn trong 1 trang, ảnh trên - trái - phải tự đổi theo thời gian.</div>
+            <div style={{ fontSize: 15, color: "#64748b", marginBottom: 26 }}>Nếu đang chạy trên Vercel, sau khi thêm ảnh vào thư mục public bạn cần push hoặc redeploy thì ảnh mới hiện.</div>
+            <div style={{ borderTop: "1px solid #e2e8f0", marginBottom: 22 }} />
             {content}
           </div>
 
-          <div style={styles.loginSideColumn}>
-            <div style={styles.loginCreatureCard}>
-              <div style={styles.loginSectionLabel}>Thú sử thi / huyền thoại</div>
-              <div style={{ ...styles.loginCreatureImageWrap, boxShadow: loginShowcase.beast.aura }}>
-                <img src={loginShowcase.beast.image} alt={loginShowcase.beast.name} style={styles.loginCreatureImage} />
-              </div>
-              <div style={styles.loginCreatureName}>{loginShowcase.beast.name}</div>
-              <div style={styles.loginCreatureMeta}>{loginShowcase.beast.rarity} · Hệ {loginShowcase.beast.element}</div>
-              <div style={styles.loginCreatureLore}>{loginShowcase.beast.lore}</div>
-            </div>
-
-            <div style={styles.loginItemCard}>
-              <div style={styles.loginSectionLabel}>Trang bị hiếm đang nổi bật</div>
-              <div style={styles.loginItemTop}>
-                <div style={styles.loginItemImageWrap}>
-                  <img src={loginShowcase.item.image} alt={loginShowcase.item.name} style={styles.loginItemImage} />
-                </div>
-                <div>
-                  <div style={styles.loginItemName}>{loginShowcase.item.name}</div>
-                  <div style={styles.loginItemMeta}>{loginShowcase.item.rarity} · {loginShowcase.item.slot}</div>
-                </div>
-              </div>
-              <div style={styles.loginItemBonusList}>
-                {loginShowcase.item.bonuses.map((bonus) => (
-                  <div key={bonus} style={styles.loginItemBonus}>✦ {bonus}</div>
-                ))}
-              </div>
-            </div>
+          <div>
+            {renderLoginImage(rightImage, "Ảnh phải", "Không thấy ảnh phải. Hãy đặt file đúng tên trong /public/login/right: right-1.jpg ... right-5.jpg rồi redeploy.", 560)}
           </div>
         </div>
       </div>
