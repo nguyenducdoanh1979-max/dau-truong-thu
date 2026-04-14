@@ -74,7 +74,6 @@ type Student = {
   avatarUrl?: string;
   notice?: string;
   overlordStudentId?: number | null;
-  beastAwakenedAt?: string | null;
 };
 
 type Guild = {
@@ -656,6 +655,7 @@ function getGuildLevelInfo(exp: number) {
   return { level, current: remain, next: getGuildLevelNeed(level), buffPercent: Math.max(0, (level - 1) * 2) };
 }
 
+
 function getPersonalLevelNeed(level: number) {
   return getGuildLevelNeed(level);
 }
@@ -670,29 +670,12 @@ function getPersonalLevelInfo(points: number) {
   return { level, current: remain, next: getPersonalLevelNeed(level) };
 }
 
-
-function getPersonalPointShare(score: number) {
-  return Math.floor(score / 2);
+function splitScore(score: number) {
+  const personal = Math.floor(score / 2);
+  const guild = score - personal;
+  return { personal, guild };
 }
 
-function getGuildPointShare(score: number) {
-  return score - getPersonalPointShare(score);
-}
-
-function getBeastQualityByHatchOrder(order: number, seed: number) {
-  if (order < 10) return 100;
-  if (order < 20) return seed % 2 === 0 ? 90 : 100;
-  if (order < 30) return 90;
-  const block = Math.floor((order - 30) / 10);
-  if (block % 2 === 0) {
-    return seed % 100 < 45 ? 90 : 78;
-  }
-  return 90;
-}
-
-function getNextGlobalHatchOrder(sourceStudents: Student[]) {
-  return sourceStudents.filter((student) => !!student.beastAwakenedAt).length;
-}
 
 function getBossLevelNeed(level: number) {
   return 100 + (level - 1) * 25;
@@ -731,9 +714,13 @@ function getBeastLevelBonus(element: Element, level: number) {
   return { atk: spent * 1, def: spent * 3, hp: spent * 12, spd: spent * 1 };
 }
 
-function createBeast(student: Student, guild: Guild, guilds: Guild[], hatchOrder = 0): Beast {
+function createBeast(student: Student, guild: Guild, guilds: Guild[]): Beast {
   const h = hashString(`${student.id}-${student.username}-${guild.id}`);
-  const quality = getBeastQualityByHatchOrder(hatchOrder, h);
+  const ranked8 = guilds.filter((g) => !!g.reachedLevel8At).sort((a, b) => new Date(a.reachedLevel8At || "").getTime() - new Date(b.reachedLevel8At || "").getTime());
+  const ranked12 = guilds.filter((g) => !!g.reachedLevel12At).sort((a, b) => new Date(a.reachedLevel12At || "").getTime() - new Date(b.reachedLevel12At || "").getTime());
+  const rank8 = Math.max(0, ranked8.findIndex((g) => g.id === guild.id));
+  const rank12 = Math.max(0, ranked12.findIndex((g) => g.id === guild.id));
+  const quality = 60 + (rank8 === 0 ? 18 : rank8 === 1 ? 14 : rank8 === 2 ? 10 : 6) + (rank12 === 0 ? 20 : rank12 === 1 ? 16 : rank12 === 2 ? 12 : 8) + (h % 6);
   const element = ELEMENTS[h % ELEMENTS.length];
   const speciesList = SPECIES_BY_ELEMENT[element];
   const species = speciesList[h % speciesList.length];
@@ -2115,7 +2102,6 @@ export default function Page() {
       .sort((a, b) => b.damage - a.damage || b.correctCount - a.correctCount || ((a.student?.name || "").localeCompare(b.student?.name || "")));
   }, [bossEvent, students]);
   const currentStudent = useMemo(() => students.find((s) => s.id === currentStudentId) || null, [students, currentStudentId]);
-  const currentStudentPersonalLevel = useMemo(() => currentStudent ? getPersonalLevelInfo(currentStudent.totalPoints).level : 1, [currentStudent]);
   const recentHatchGuilds = useMemo(
     () => activeGuilds.filter((g) => g.level >= 6 && !!g.reachedLevel12At && isRecentTimestamp(g.reachedLevel12At, 15 * 60 * 1000)),
     [activeGuilds]
@@ -2540,7 +2526,7 @@ export default function Page() {
   }
 
   function refreshDerived(nextGuilds: Guild[], nextStudents: Student[]) {
-    const newGuilds = nextGuilds.map((g) => {
+    let newGuilds = nextGuilds.map((g) => {
       const info = getGuildLevelInfo(g.exp);
       return { ...g, level: info.level, buffPercent: info.buffPercent };
     });
@@ -2548,47 +2534,25 @@ export default function Page() {
     let newStudents = nextStudents.map((s) => autoProcessInventory({ ...s }));
 
     newStudents = newStudents.map((s) => {
-      const personalLevel = getPersonalLevelInfo(s.totalPoints).level;
-      const guild = newGuilds.find((x) => x.id === s.guildId);
-      if (!guild) return s;
-
-      if (personalLevel >= 4 && (!s.beast || !s.hasBeast)) {
-        const hatchOrder = getNextGlobalHatchOrder(newStudents);
-        const beast = createBeast(s, guild, newGuilds, hatchOrder);
-        const beastLevel = Math.max(1, personalLevel);
-        return {
-          ...s,
-          hasBeast: true,
-          beastAwakenedAt: new Date().toISOString(),
-          beast: {
-            ...beast,
-            level: beastLevel,
-            exp: 0,
-          },
-        };
+      const personalInfo = getPersonalLevelInfo(s.totalPoints);
+      const g = newGuilds.find((x) => x.id === s.guildId);
+      if (!g) return s;
+      if (personalInfo.level >= 4 && (!s.beast || !s.hasBeast)) {
+        const beast = createBeast(s, g, newGuilds);
+        return { ...s, hasBeast: true, beast: { ...beast, level: personalInfo.level } };
       }
-
       if (s.beast) {
         const lv = getBeastLevelInfo(s.beast.exp);
         return { ...s, beast: { ...s.beast, level: Math.max(s.beast.level || 1, lv.level) } };
       }
-
       return s;
     });
 
-    const guildHasBeastMap = new Map<number, boolean>();
-    newGuilds.forEach((g) => {
-      guildHasBeastMap.set(g.id, newStudents.some((s) => s.guildId === g.id && !!s.beast));
-    });
-
-    const finalGuilds = newGuilds.map((g) => {
+    newGuilds = newGuilds.map((g) => {
       const allMembers = newStudents.filter((s) => s.guildId === g.id);
       const beastMembers = allMembers.filter((s) => s.beast);
-      if (beastMembers.length === 0) {
-        return { ...g, leaderStudentId: null, viceLeaderStudentIds: [] };
-      }
       const allHaveBeast = allMembers.length > 0 && allMembers.every((member) => !!member.beast);
-      if (!allHaveBeast) {
+      if (!allHaveBeast || beastMembers.length === 0) {
         return { ...g, leaderStudentId: null, viceLeaderStudentIds: [] };
       }
       const ranked = [...beastMembers].sort((a, b) => beastPower(b, g) - beastPower(a, g));
@@ -2597,7 +2561,7 @@ export default function Page() {
       return { ...g, leaderStudentId: leaderId, viceLeaderStudentIds: viceIds };
     });
 
-    return { guilds: finalGuilds, students: newStudents };
+    return { guilds: newGuilds, students: newStudents };
   }
 
   function handleAdminLogin() {
@@ -2622,21 +2586,20 @@ export default function Page() {
     });
 
     const rewardItem = assignment.reward ? createConfiguredRewardItem(assignment.reward) : null;
-    const personalGain = getPersonalPointShare(score);
-    const guildGain = getGuildPointShare(score);
+    const parts = splitScore(score);
     const nextStudents = students.map((s) =>
       s.id === student.id
         ? autoProcessInventory({
             ...s,
             weeklyPoints: s.weeklyPoints + score,
-            totalPoints: s.totalPoints + personalGain,
-            beast: s.beast ? { ...s.beast, exp: s.beast.exp + personalGain } : s.beast,
+            totalPoints: s.totalPoints + parts.personal,
+            beast: s.beast ? { ...s.beast, exp: s.beast.exp + parts.personal } : s.beast,
             inventory: rewardItem ? [...s.inventory, rewardItem] : s.inventory,
           })
         : s
     );
-    const nextGuilds = guilds.map((g) => (g.id === student.guildId ? { ...g, exp: g.exp + guildGain } : g));
-    const result = refreshDerived(nextGuilds, applyTerritoryExpShare(students, nextStudents));
+    const nextGuilds = guilds.map((g) => (g.id === student.guildId ? { ...g, exp: g.exp + parts.guild } : g));
+    const result = refreshDerived(nextGuilds, nextStudents);
     const autoActionResult = score >= 9 ? applyAutoScoreActions(result.students, result.guilds, student.id, assignment.title) : null;
     const finalStudents = autoActionResult?.students || result.students;
     const finalGuilds = autoActionResult?.guilds || result.guilds;
@@ -2843,9 +2806,9 @@ export default function Page() {
     const target = students.find((s) => s.id === studentId);
     if (!target) return;
 
-    const personalDelta = getPersonalPointShare(delta);
-    const guildDelta = getGuildPointShare(delta);
-    const beastDelta = target.beast ? personalDelta : 0;
+    const parts = splitScore(Math.abs(delta));
+    const personalDelta = delta >= 0 ? parts.personal : -parts.personal;
+    const guildDelta = delta >= 0 ? parts.guild : -parts.guild;
 
     const nextStudents = students.map((s) =>
       s.id === studentId
@@ -2853,7 +2816,7 @@ export default function Page() {
             ...s,
             weeklyPoints: Math.max(0, s.weeklyPoints + delta),
             totalPoints: Math.max(0, s.totalPoints + personalDelta),
-            beast: s.beast ? { ...s.beast, exp: Math.max(0, s.beast.exp + beastDelta) } : s.beast,
+            beast: s.beast ? { ...s.beast, exp: Math.max(0, s.beast.exp + personalDelta) } : s.beast,
             notice: delta < 0 ? `Bạn vừa bị trừ ${Math.abs(delta)} điểm.` : s.notice || "",
           }
         : s
@@ -2863,7 +2826,7 @@ export default function Page() {
       g.id === target.guildId ? { ...g, exp: Math.max(0, g.exp + guildDelta) } : g
     );
 
-    const result = refreshDerived(nextGuilds, applyTerritoryExpShare(students, nextStudents));
+    const result = refreshDerived(nextGuilds, nextStudents);
     setGuilds(result.guilds);
     setStudents(result.students);
     setPointInputs((prev) => ({ ...prev, [studentId]: "" }));
@@ -2871,7 +2834,7 @@ export default function Page() {
     addLog(
       "manual_point",
       delta > 0
-        ? `${target.name} được cộng ${delta} điểm: ${Math.max(0, personalDelta)} vào cá nhân${target.beast ? " / EXP thú" : ""}, ${Math.max(0, guildDelta)} vào quân đoàn.`
+        ? `${target.name} được cộng ${delta} điểm: ${parts.personal} vào cá nhân${target.beast ? " / EXP thú" : ""}, ${parts.guild} vào quân đoàn.`
         : `${target.name} bị trừ ${Math.abs(delta)} điểm.`
     );
   }
@@ -3429,21 +3392,20 @@ export default function Page() {
     });
 
     const rewardItem = activeAssignment.reward ? createConfiguredRewardItem(activeAssignment.reward) : null;
-    const personalGain = getPersonalPointShare(score);
-    const guildGain = getGuildPointShare(score);
+    const parts = splitScore(score);
     const nextStudents = students.map((s) =>
       s.id === currentStudent.id
         ? autoProcessInventory({
             ...s,
             weeklyPoints: s.weeklyPoints + score,
-            totalPoints: s.totalPoints + personalGain,
-            beast: s.beast ? { ...s.beast, exp: s.beast.exp + personalGain } : s.beast,
+            totalPoints: s.totalPoints + parts.personal,
+            beast: s.beast ? { ...s.beast, exp: s.beast.exp + parts.personal } : s.beast,
             inventory: rewardItem ? [...s.inventory, rewardItem] : s.inventory,
           })
         : s
     );
-    const nextGuilds = guilds.map((g) => (g.id === currentStudent.guildId ? { ...g, exp: g.exp + guildGain } : g));
-    const result = refreshDerived(nextGuilds, applyTerritoryExpShare(students, nextStudents));
+    const nextGuilds = guilds.map((g) => (g.id === currentStudent.guildId ? { ...g, exp: g.exp + parts.guild } : g));
+    const result = refreshDerived(nextGuilds, nextStudents);
     const autoActionResult = score >= 9 ? applyAutoScoreActions(result.students, result.guilds, currentStudent.id, activeAssignment.title) : null;
     const finalStudents = autoActionResult?.students || result.students;
     const finalGuilds = autoActionResult?.guilds || result.guilds;
@@ -4239,26 +4201,11 @@ function launchTerritoryRaid() {
             {currentStudent.notice && <div style={styles.noticeBox}>{currentStudent.notice}</div>}
             <div>Điểm tuần: <b>{currentStudent.weeklyPoints}</b></div>
             <div>Điểm cá nhân: <b>{currentStudent.totalPoints}</b> · LV cá nhân: <b>{getPersonalLevelInfo(currentStudent.totalPoints).level}</b></div>
-            {!currentStudent.beast && (
-              <div>Trạng thái trứng: <b>{getPersonalLevelInfo(currentStudent.totalPoints).level >= 4 ? "Đã nở" : getPersonalLevelInfo(currentStudent.totalPoints).level >= 3 ? "Đang ấp" : "Chưa có trứng"}</b></div>
-            )}
             <div>Buff quân đoàn: <b>+{guild.buffPercent}%</b></div>
             <div>Chức vụ: <b>{getRoleLabel(currentStudent.id, guild)}</b> · Buff chức vụ: <b>+{getRoleBuffPercent(currentStudent.id, guild)}%</b></div>
             <div>Tổng buff: <b>+{getTotalBuffPercent(currentStudent.id, guild)}%</b></div>
             <div>Điểm uy danh: <b>{currentStudent.prestigePoints || 0}</b></div>
-            {currentStudent.beast && <div>Thú: <b>{currentStudent.beast.species}</b> · Tư chất: <b>{currentStudent.beast.quality}</b></div>}
             <div>Lực chiến: <b>{beastPower(currentStudent, guild)}</b></div>
-            <div style={{ marginTop: 12, display: "grid", gap: 8, padding: 12, borderRadius: 12, background: "#f8fafc", border: "1px solid #e2e8f0" }}>
-              <div style={{ fontWeight: 700 }}>Đổi mật khẩu học sinh</div>
-              <input
-                style={styles.input}
-                type="password"
-                value={studentNewPassword}
-                onChange={(e) => setStudentNewPassword(e.target.value)}
-                placeholder="Nhập mật khẩu mới"
-              />
-              <button style={styles.secondaryBtn} onClick={changeStudentPassword}>Đổi mật khẩu</button>
-            </div>
             <div style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>Uy danh từ đơn đấu chỉ nhận khi lực chiến thấp hơn mà vẫn thắng. Uy danh tự động cường hóa đều theo thứ tự: Vũ khí → Giáp → Mũ → Giày.</div>
             <div style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>Buff sức mạnh: Quân đoàn +{guild.buffPercent}%{guild.leaderStudentId === currentStudent.id ? " · Đoàn trưởng +5%" : guild.viceLeaderStudentIds.includes(currentStudent.id) ? " · Đoàn phó +2%" : ""}</div>
             <div style={{ marginTop: 12, display: "grid", gap: 8 }}>
@@ -4421,7 +4368,7 @@ function launchTerritoryRaid() {
                   <>
                     <div style={{ textAlign: "center", fontWeight: 800, fontSize: 20, marginBottom: 10 }}>Thú chiến của bạn</div>
                     <div style={{ ...styles.studentBeastFrame, ...getBeastFrameStyle(currentStudent.beast), ...(isRecentTimestamp(guild.reachedLevel12At, 15 * 60 * 1000) ? styles.hatchCelebrationFrame : {}) }}>
-                      {currentStudentPersonalLevel >= 4 && currentStudent?.beastAwakenedAt && isRecentTimestamp(currentStudent.beastAwakenedAt, 15 * 60 * 1000) && (
+                      {isRecentTimestamp(guild.reachedLevel12At, 15 * 60 * 1000) && (
                         <>
                           <div style={styles.hatchBurstRing} />
                           <div style={styles.hatchBurstSparkLeft}>✨</div>
@@ -4455,18 +4402,18 @@ function launchTerritoryRaid() {
                       </div>
                     </div>
                     <div style={{ textAlign: "center", marginTop: 12, fontSize: 22 }}><b>{currentStudent.beast.species}</b> · Hệ {currentStudent.beast.element}</div>
-                    {currentStudentPersonalLevel >= 4 && currentStudent?.beastAwakenedAt && isRecentTimestamp(currentStudent.beastAwakenedAt, 15 * 60 * 1000) && (
-                      <div style={styles.hatchCelebrationText}>🌟 Trứng cá nhân vừa nở theo cấp của học sinh. Thú chiến đã thức tỉnh với hiệu ứng bùng nổ ánh sáng.</div>
+                    {getPersonalLevelInfo(currentStudent.totalPoints).level >= 4 && (
+                      <div style={styles.hatchCelebrationText}>🌟 Trứng cá nhân đã nở! Thú chiến đã thức tỉnh.</div>
                     )}
                   </>
                 ) : (
                   <div>
-                    <div style={{ ...styles.studentBeastFrame, ...styles.eggFrame, ...(currentStudentPersonalLevel >= 4 ? styles.eggGlowAnimated : {}), boxShadow: currentStudentPersonalLevel >= 4 ? "0 0 20px rgba(250,204,21,0.45)" : currentStudentPersonalLevel >= 3 ? "0 0 14px rgba(59,130,246,0.35)" : "0 0 10px rgba(148,163,184,0.25)" }}>
-                      <img src={getEggImage(currentStudentPersonalLevel)} alt="egg" onError={(e) => { e.currentTarget.style.display = "none"; const next = e.currentTarget.nextElementSibling as HTMLElement | null; if (next) next.style.display = "flex"; }} style={{ ...styles.studentBeastImage, ...styles.eggAnimated }} /><div style={{ display: "none", alignItems: "center", justifyContent: "center", width: "100%", height: "100%", fontSize: 88 }}>🥚</div>
+                    <div style={{ ...styles.studentBeastFrame, ...styles.eggFrame, ...(getPersonalLevelInfo(currentStudent.totalPoints).level >= 4 ? styles.eggGlowAnimated : {}), boxShadow: getPersonalLevelInfo(currentStudent.totalPoints).level >= 4 ? "0 0 20px rgba(250,204,21,0.45)" : "0 0 10px rgba(148,163,184,0.25)" }}>
+                      <img src={getEggImage(getPersonalLevelInfo(currentStudent.totalPoints).level)} alt="egg" onError={(e) => { e.currentTarget.style.display = "none"; const next = e.currentTarget.nextElementSibling as HTMLElement | null; if (next) next.style.display = "flex"; }} style={{ ...styles.studentBeastImage, ...styles.eggAnimated }} /><div style={{ display: "none", alignItems: "center", justifyContent: "center", width: "100%", height: "100%", fontSize: 88 }}>🥚</div>
                     </div>
-                    <div style={{ marginTop: 10, textAlign: "center", fontSize: 20, fontWeight: 800 }}>Trứng thú cá nhân</div><div style={{ marginTop: 6, textAlign: "center" }}>Trứng ấp và nở theo cấp cá nhân, không phụ thuộc cấp quân đoàn.</div>
+                    <div style={{ marginTop: 10, textAlign: "center", fontSize: 20, fontWeight: 800 }}>Trứng thú đang chờ nở</div><div style={{ marginTop: 6, textAlign: "center" }}>LV cá nhân 3 bắt đầu ấp trứng, LV cá nhân 4 trứng nở.</div>
                     <div style={{ fontSize: 13, color: "#64748b", marginTop: 6, textAlign: "center" }}>
-                      {currentStudentPersonalLevel >= 4 ? "Trứng đã nở theo cấp cá nhân." : currentStudentPersonalLevel >= 3 ? "Trứng đang ấp và phát sáng theo cấp cá nhân." : "Chưa đạt mốc ấp trứng cá nhân."}
+                      {getPersonalLevelInfo(currentStudent.totalPoints).level >= 4 ? "Trứng đã nở." : getPersonalLevelInfo(currentStudent.totalPoints).level >= 3 ? "Trứng đã bắt đầu ấp và phát sáng." : "Chưa đạt mốc ấp trứng."}
                     </div>
                   </div>
                 )}
@@ -4881,16 +4828,16 @@ function launchTerritoryRaid() {
                           </div>
                         ) : (
                           <div style={styles.beastDisplayRow}>
-                            <div style={{ ...styles.eggFrameWide, ...(getPersonalLevelInfo(s.totalPoints).level >= 4 ? styles.eggGlowAnimated : {}), boxShadow: getPersonalLevelInfo(s.totalPoints).level >= 4 ? "0 0 18px rgba(250,204,21,0.35)" : getPersonalLevelInfo(s.totalPoints).level >= 3 ? "0 0 12px rgba(59,130,246,0.28)" : "0 0 10px rgba(148,163,184,0.2)" }}>
-                              <img src={getEggImage(getPersonalLevelInfo(s.totalPoints).level)} alt="egg" style={{ ...styles.eggImageWide, ...styles.eggAnimated }} />
+                            <div style={{ ...styles.eggFrameWide, ...(guild.level >= 6 ? styles.eggGlowAnimated : {}), boxShadow: guild.level >= 6 ? "0 0 18px rgba(250,204,21,0.35)" : "0 0 10px rgba(148,163,184,0.2)" }}>
+                              <img src={getEggImage(guild.level)} alt="egg" style={{ ...styles.eggImageWide, ...styles.eggAnimated }} />
                               <div style={styles.beastOverlayTop}>
                                 <div style={{ ...styles.beastOverlayBadge, color: "#eab308", background: "rgba(255,255,255,0.92)", borderColor: "#f59e0b" }}>
-                                  Trứng cá nhân
+                                  Trứng thú
                                 </div>
                               </div>
                               <div style={styles.beastOverlayBottom}>
-                                <div style={styles.beastOverlayMuted}>Cấp cá nhân {getPersonalLevelInfo(s.totalPoints).level}</div>
-                                <div style={styles.beastOverlayMuted}>{getPersonalLevelInfo(s.totalPoints).level >= 4 ? "Đã nở" : getPersonalLevelInfo(s.totalPoints).level >= 3 ? "Đang ấp" : "Chưa đủ cấp cá nhân"}</div>
+                                <div style={styles.beastOverlayMuted}>Cấp bang {guild.level}</div>
+                                <div style={styles.beastOverlayMuted}>{guild.level >= 6 ? "Đã nở / chờ chốt trưởng" : guild.level >= 4 ? "Đang ấp" : "Chưa đủ cấp"}</div>
                               </div>
                             </div>
                           </div>
@@ -5082,8 +5029,8 @@ function launchTerritoryRaid() {
                   </div>
 
                   <div style={styles.guildRoleSummary}>
-                    <div><b>Trạng thái trứng của quân đoàn:</b> {beastMembers.length > 0 ? `Đã có ${beastMembers.length} thú đã nở trong quân đoàn` : "Chưa có thành viên nào nở thú"}</div>
-                    <div><b>Đoàn trưởng:</b> {members.find((s) => s.id === guild.leaderStudentId)?.name || (beastMembers.length > 0 ? "Đang đếm ngược chốt sau 3 ngày" : "-")}</div>
+                    <div><b>Trạng thái trứng:</b> {guild.level >= 6 ? "Đã nở" : guild.level >= 4 ? "Đang ấp / phát sáng" : "Chưa ấp"}</div>
+                    <div><b>Đoàn trưởng:</b> {members.find((s) => s.id === guild.leaderStudentId)?.name || (guild.level >= 6 ? "Đang đếm ngược chốt sau 3 ngày" : "-")}</div>
                     <div><b>Đoàn phó:</b> {guild.viceLeaderStudentIds.map((id) => members.find((s) => s.id === id)?.name).filter(Boolean).join(", ") || "-"}</div>
                     <div><b>Luật đoàn phó:</b> đếm theo tổng thành viên, xếp theo lực chiến thú (không tính đoàn trưởng).</div>
                   </div>
