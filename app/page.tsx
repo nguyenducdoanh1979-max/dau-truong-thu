@@ -1911,6 +1911,87 @@ export default function Page() {
   const autoSubmittedRef = useRef(false);
   const resolvingConquestRef = useRef(false);
 
+  const loginImageCandidates = useMemo(() => ({
+    top: [
+      "/login/top/top-1.jpg",
+      "/login/top/top-2.jpg",
+      "/login/top/top-3.jpg",
+      "/login/top/top-4.jpg",
+      "/login/top/top-5.jpg",
+    ],
+    left: [
+      "/login/left/left-1.jpg",
+      "/login/left/left-2.jpg",
+      "/login/left/left-3.jpg",
+      "/login/left/left-4.jpg",
+      "/login/left/left-5.jpg",
+    ],
+    right: [
+      "/login/right/right-1.jpg",
+      "/login/right/right-2.jpg",
+      "/login/right/right-3.jpg",
+      "/login/right/right-4.jpg",
+      "/login/right/right-5.jpg",
+    ],
+  }), []);
+
+  const [loginImageIndex, setLoginImageIndex] = useState({ top: 0, left: 0, right: 0 });
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setLoginImageIndex((prev) => ({
+        top: (prev.top + 1) % loginImageCandidates.top.length,
+        left: (prev.left + 1) % loginImageCandidates.left.length,
+        right: (prev.right + 1) % loginImageCandidates.right.length,
+      }));
+    }, 8000);
+    return () => window.clearInterval(timer);
+  }, [loginImageCandidates]);
+
+  function renderLoginImage(src: string, alt: string, fallbackText: string, height: number) {
+    return (
+      <div
+        style={{
+          height,
+          width: "100%",
+          borderRadius: 24,
+          overflow: "hidden",
+          background: "rgba(255,255,255,0.08)",
+          border: "1px solid rgba(255,255,255,0.14)",
+          position: "relative",
+        }}
+      >
+        <img
+          src={src}
+          alt={alt}
+          style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+          onError={(e) => {
+            e.currentTarget.style.display = "none";
+            const next = e.currentTarget.nextElementSibling as HTMLElement | null;
+            if (next) next.style.display = "flex";
+          }}
+        />
+        <div
+          style={{
+            display: "none",
+            position: "absolute",
+            inset: 0,
+            alignItems: "center",
+            justifyContent: "center",
+            textAlign: "center",
+            padding: 18,
+            color: "#e2e8f0",
+            fontWeight: 700,
+            lineHeight: 1.6,
+            background: "linear-gradient(135deg, rgba(15,23,42,0.88), rgba(30,41,59,0.88))",
+          }}
+        >
+          {fallbackText}
+        </div>
+      </div>
+    );
+  }
+
   const loginShowcase = useMemo(() => {
     const formula = LOGIN_FORMULA_CARDS[Math.floor(Math.random() * LOGIN_FORMULA_CARDS.length)];
     const beast = LOGIN_BEAST_SHOWCASE[Math.floor(Math.random() * LOGIN_BEAST_SHOWCASE.length)];
